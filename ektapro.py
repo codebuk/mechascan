@@ -20,7 +20,7 @@
    limitations under the License.
    
    This program serves as a controller for the ektapro slide projector
-   devices.  Currently only one projector per serial port is supported.
+   devices. One projector per serial port is supported.
 """
 import serial, pprint, time, logging, fcntl
 try:
@@ -183,7 +183,7 @@ class EktaproDevice:
         try: #might be disconnected
             self.serialDevice.write(c.toData())
         except IOError as e:
-            log.debug ("I/O error: "  + str(e.errno)
+            log.debug ("I/O error: "  + str(e.errno))
         except ValueError:
             print "Could not convert data to an integer."      
         except serial.SerialException:
