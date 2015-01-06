@@ -67,7 +67,7 @@ class EktaproDevice:
                             logging.info("Not a Ektapro device")
                         else:
                             self.serialDevice = s
-                        return 1
+                            return 1
                 except serial.SerialException:
                     pass
                 except IOError:
