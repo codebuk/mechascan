@@ -56,15 +56,21 @@ class TimerController:
             return
         if (self.start_slot <=  self.count):
             self.t_led.continuous (1, 4000)
-            self.t_cam.open()
-            ok = self.t_cam.capture()
+            try:
+                self.t_cam.open()
+            except:
+                pass
+            try:
+                ok = self.t_cam.capture()
+            except:
+                pass
             if (ok):
                 f = "/home/dan/pics/" + str(self.count) + ".jpg"
                 log.debug ("Capture complete - Now save" + f )
                 self.t_cam.save(f)
                 self.t_cam.close()
             self.t_led.continuous (1, 200)
-            self.t_tpt.next(2, 0)  #do the move - do not wait after starting move
+            self.t_tpt.next(0, 0)  #do the move - do not wait after starting move
         
         if self.auto_active:
             self.lock.acquire()
@@ -80,7 +86,7 @@ class TimerController:
         if self.t_tpt == None:
             return
         else:
-            self.t_tpt.prev()
+            self.t_tpt.prev(pre_timeout = 1.5, post_timeout = 1.5)
             return
 
     def start_auto(self):
@@ -122,7 +128,7 @@ class TimerController:
         if self.t_tpt == None:
             return
         if self.auto_active and not self.auto_paused:
-            self.t_led.continuous (0,200)
+            self.t_led.continuous (1,200)
             self.next()
             self.gui.updateGUI()
 
@@ -222,9 +228,10 @@ class EktaproGUI(Tk):
         self.menubar.add_cascade(label="Tools", menu=self.toolsmenu)
         self.menubar.add_cascade(label="Help", menu=self.helpmenu)
         self.configure(menu=self.menubar)
-        #self.init_hardware()
+        
         self.gui ("Enable")
         self.updateGUI("Connect")
+        self.init_hardware()
 
     #def capture_images(self):
     #    log("Capture Images selected")
@@ -279,7 +286,7 @@ class EktaproGUI(Tk):
             self.statusButton.config(state=DISABLED)
 
     def status (self):
-        self.tpt.get_system_status()
+        self.tpt.get_status()
     
     def sync(self):
         self.tpt.sync()
