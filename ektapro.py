@@ -141,16 +141,16 @@ class EktaproDevice:
         self.comms( EktaproCommand(self.projektorID).directClearErrorFlag())
     
     def select(self, slide):
-        self.comms(EktaproCommand(self.projektorID).paramRandomAccess(slide),pre_timeout = 1 , post_timeout = 10)
+        self.comms(EktaproCommand(self.projektorID).paramRandomAccess(slide),pre_timeout = 0 , post_timeout = 10)
         self.slide = slide
 
-    def next(self, pre_timeout , post_timeout):
+    def next(self, pre_timeout = 0 , post_timeout = 1.5):
         self.comms(EktaproCommand(self.projektorID).directSlideForward(),pre_timeout = pre_timeout , post_timeout = post_timeout)
         self.slide = self.slide + 1
         if self.slide > self.traySize:
             self.slide = 0 #? 1
  
-    def prev(self ,pre_timeout = 0, post_timeout = 0):
+    def prev(self ,pre_timeout = 0, post_timeout = 1.5):
         self.comms(EktaproCommand(self.projektorID).directSlideBackward(),pre_timeout = pre_timeout , post_timeout = post_timeout)
         self.slide = self.slide - 1
         if self.slide == -1:
@@ -166,8 +166,8 @@ class EktaproDevice:
             else:    
                 self.slide = int(str(ord(s[2])))
 
-    def get_status(self, busy = 0):
-        ret =  self.get_system_status()
+    def get_status(self, busy = False , debug = True):
+        ret =  self.get_system_status(debug = debug)
         if   ( self.slide_lift_motor_error  \
                or self.tray_transport_motor_error \
                or self.command_error \
@@ -183,10 +183,11 @@ class EktaproDevice:
             return ret
         else:
             self.get_system_return()
-            log.debug (self.get_details())
+            if (self.connected):
+                log.debug (self.get_details())
 
-    def get_system_return (self):
-        self.info = self.comms(EktaproCommand(self.projektorID).statusSystemReturn(), read_bytes = 5)
+    def get_system_return (self, debug = True):
+        self.info = self.comms(EktaproCommand(self.projektorID).statusSystemReturn(), read_bytes = 5, debug = debug)
         if (self.connected and (len (self.info) == 5) ):
             info = self.info
             #self.projektorID = ord(info[0]) / 16 - do not change based on returned values
@@ -215,8 +216,8 @@ class EktaproDevice:
             self.standby = None
             self.highLight = None
 
-    def get_system_status(self):
-        s = self.comms(EktaproCommand(self.projektorID).statusSystemStatus(), read_bytes = 3)
+    def get_system_status(self, debug = True):
+        s = self.comms(EktaproCommand(self.projektorID).statusSystemStatus(), read_bytes = 3, debug = debug)
         if (self.connected and (len (s) == 3) ):
             if not (ord(s[0]) % 8 == 6) or not (ord(s[2]) % 4 == 3):
                 #or not (ord(s[1]) % 64 == 3) \ #should be 11XX XXXX don't check for now
@@ -250,9 +251,10 @@ class EktaproDevice:
             self.framing_error = None
         return self.projector_status
 
-    def comms (self, command, read_bytes = 0, pre_timeout = 0, post_timeout = 0):
+    def comms (self, command, read_bytes = 0, pre_timeout = 0, post_timeout = 0, debug = True):
         rec = ""
-        log.debug ("Send: " + str (command) + " hex: " + repr (command.toData()) + " pre/post timouts: " + str(pre_timeout) + " - " + str(post_timeout) )
+        if (debug):
+            log.debug ("Send: " + str (command) + " hex: " + repr (command.toData()) + " pre/post timouts: " + str(pre_timeout) + " - " + str(post_timeout) )
         self.busy(pre_timeout, desc ="pre timeout ")
         if (self.connected):
             try: #might be disconnected or port removed or....
@@ -266,20 +268,23 @@ class EktaproDevice:
                 rec = self.serialDevice.read(read_bytes)
             except:
                 raise
-            log.debug ("Revd: " + repr(rec) + " len: " + str(len (rec)))         
+            if (debug):
+                log.debug ("Revd: " + repr(rec) + " len: " + str(len (rec)))         
         self.busy(post_timeout, desc ="post timeout ")
         return rec
             
     def busy(self, timeout , desc = ""):
-        if ( self.connected == 0 or timeout == 0 or not self.get_status(busy = 1) ):
+        if ( self.connected == 0 or timeout == 0):
+            return
+        if (not self.get_status(busy = True)):
             return
         busy = True
         ts = time.time()
         if (timeout > 0 ):
             while busy:
-                busy = self.get_status(busy = 1)
+                busy = self.get_status(busy = 1 , debug = False)
                 if (time.time () - ts > timeout):
-                    log.error("Busy timeout")
+                    log.error("Busy " + desc + " timeout: " + str(timeout))
                     raise IOError, "Busy timeout"
             log.debug ( desc + "busy for: " + str(time.time () - ts))
        

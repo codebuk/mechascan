@@ -2,13 +2,13 @@
 """
    MechaScan-Slide
    
-   Copyright 2014 Breager
+   Copyright (C) 2014,2015 Breager Pty. Ltd.
 
    This program serves as a controller for the ektapro slide projector
    devices. It searches for slide projector devices on the serial
    ports on startup, and presents a GUI to manually control
-   the projectors or use a timer for automatic slideshows. Currently,
-   only one projector per serial port is supported.
+   the projectors or use a timer for automatic slideshows.
+   One projector per serial port is supported.
 """
 
 
@@ -16,7 +16,6 @@ from Tkconstants import SINGLE, END, DISABLED, HORIZONTAL, BOTTOM, W, X, LEFT, \
     BOTH, RIGHT, N, TOP, NORMAL
 from Tkinter import Tk, Frame, Listbox, Button, Label, Entry, IntVar, \
     Checkbutton, Scale, Menu
-from thread import allocate_lock
 import tkMessageBox
 import tkSimpleDialog
 import os, logging , fcntl
@@ -32,109 +31,8 @@ logging.basicConfig(level=logging.DEBUG,
 logit = logging.getLogger('gphoto2')
 logit.setLevel(logging.INFO)
 
-class TimerController:
-
-    #Contains the logic to control the timer and fading mechanism.
-    def __init__(self, tpt, gsd, cam,  gui):
-        log.debug ("tc init")
-        self.t_tpt = tpt
-        self.t_led = gsd
-        self.t_cam = cam
-        self.gui = gui
-        self.auto_active = False
-        self.timer_active = False
-        self.auto_paused = False
-        self.lock = allocate_lock()
-        self.auto_delay = 1
-        self.count = 1000
-        self.end_slot = 80
-        self.start_slot = 0
-
-    def next(self):
-        log.debug("Next count: " + str (self.count) + " start: " + str(self.start_slot))
-        if self.t_tpt == None:
-            return
-        if (self.start_slot <=  self.count):
-            self.t_led.continuous (1, 4000)
-            try:
-                self.t_cam.open()
-            except:
-                pass
-            try:
-                ok = self.t_cam.capture()
-            except:
-                pass
-            if (ok):
-                f = "/home/dan/pics/" + str(self.count) + ".jpg"
-                log.debug ("Capture complete - Now save" + f )
-                self.t_cam.save(f)
-                self.t_cam.close()
-            self.t_led.continuous (1, 200)
-            self.t_tpt.next(0, 0)  #do the move - do not wait after starting move
-        
-        if self.auto_active:
-            self.lock.acquire()
-            if not self.timer_active:
-                self.timer_active = True
-                log.debug ("Start Delay(ms): " + self.auto_delay)
-                self.gui.after(int (self.auto_delay), self.timer_event)
-            self.lock.release()
-        self.count = self.count + 1
-        if (self.count >= 81): self.stop_auto()
-
-    def prev(self):
-        if self.t_tpt == None:
-            return
-        else:
-            self.t_tpt.prev(pre_timeout = 1.5, post_timeout = 1.5)
-            return
-
-    def start_auto(self):
-        if self.t_tpt == None:
-            return
-        self.auto_delay = self.gui.timerInput.get()
-        self.auto_active = True
-        self.auto_paused = False
-        self.count = 0
-        log.debug ("Delay: " + self.auto_delay)
-        self.lock.acquire()
-        if not self.timer_active:
-            self.gui.after( int(self.auto_delay), self.timer_event)
-            self.timer_active = True
-        self.lock.release()
-
-    def pause(self):
-        self.auto_paused = True
-
-    def resume(self):
-        self.auto_paused = False
-        self.lock.acquire()
-        if not self.timer_active:
-            self.timer_active = True
-            self.gui.after(50, self.timer_event)
-        self.lock.release()
-
-    def stop_auto(self):
-        self.auto_active = False
-        self.auto_paused = False
-        self.gui.pauseButton.config(text="II")
-        self.t_tpt.reset()
-
-    def timer_event(self):
-        log.debug("Timer Event" + str (self.count))
-        self.timer_active = False
-        if (self.count > self.end_slot):
-            self.stop_auto()
-        if self.t_tpt == None:
-            return
-        if self.auto_active and not self.auto_paused:
-            self.t_led.continuous (1,200)
-            self.next()
-            self.gui.updateGUI()
-
 class EktaproGUI(Tk):
     #Constructs the main program window and interfaces with the EktaproDevice
-    #and the TimerController to access the slide projector.
     def __init__(self):
         self.tpt = EktaproDevice()
         self.led = GardasoftDevice()
@@ -144,8 +42,7 @@ class EktaproGUI(Tk):
         self.wm_title("Mechascan Slide")
         self.bind("<Prior>", self.prevPressed)
         self.bind("<Next>", self.nextPressed)
-        self.slide = 1
-        self.timerController = TimerController(self.tpt, self.led, self.cam, self)
+
         self.statusPanel = Frame(self)
         self.controlPanel = Frame(self)
         self.manualPanel = Frame(self)
@@ -156,9 +53,9 @@ class EktaproGUI(Tk):
         self.connectButton = Button(self.controlPanel, text="Connect Transport", command=self.connectButtonPressed)
         self.nextButton = Button(self.controlPanel, text=" > ", command=self.nextPressed)
         self.prevButton = Button(self.controlPanel, text=" < ", command=self.prevPressed)
-        self.startButton = Button(self.controlPanel, text="Start Scanning", command=self.startTimer)
-        self.pauseButton = Button(self.controlPanel, text="II", command=self.pauseTimer)
-        self.stopButton = Button(self.controlPanel, text="Stop Scanning", command=self.stopTimer)
+        self.startButton = Button(self.controlPanel, text="Start Scanning", command=self.start_scan)
+        self.pauseButton = Button(self.controlPanel, text="II", command=self.pause_scan)
+        self.stopButton = Button(self.controlPanel, text="Stop Scanning", command=self.stop_scan)
 
         self.timerLabel = Label(self.controlPanel, text="Stable Time")
         self.timerInput = Entry(self.controlPanel, width=3)
@@ -232,9 +129,16 @@ class EktaproGUI(Tk):
         self.gui ("Enable")
         self.updateGUI("Connect")
         self.init_hardware()
+        self.update_clock()
 
     #def capture_images(self):
     #    log("Capture Images selected")
+
+    def update_clock(self):
+        now = time.strftime("%H:%M:%S")
+        self.statusLabel.configure(text=now)
+        self.after(1000, self.update_clock)
+        self.updateGUI()
 
     def connectButtonPressed(self):
         self.init_hardware()
@@ -244,26 +148,80 @@ class EktaproGUI(Tk):
     def inputValuesChanged(self, event):
         auto_delay = int(self.timerInput.get())
         if auto_delay in range(0, 6000):
-            self.timerController.auto_delay = auto_delay
+            self.auto_delay = auto_delay
             log.debug ("Valid delay: " + unicode (auto_delay))
         else:
             log.error ("Invalid delay: " + unicode (auto_delay))
 
         start_slot = int(self.start_slot_input.get())
         if start_slot in range(1, 140):
-            self.timerController.start_slot = start_slot
+            self.start_slot = start_slot
             log.debug ("Start slot: " + unicode (start_slot))
         else:
             log.error ("Start slot: " + unicode (start_slot))
 
         end_slot = int(self.end_slot_input.get())
         if end_slot in range(1, 140):
-            self.timerController.end_slot = end_slot
+            self.end_slot = end_slot
             log.debug ("End slot: " + unicode (end_slot))
         else:
             log.error ("End slot: " + unicode (end_slot))
-            
         self.updateGUI()
+
+    def start_scan(self):
+        self.stopButton.config(state=NORMAL)
+        self.startButton.config(state=DISABLED)
+        self.scan()
+        
+    def pause_scan(self):
+        self.pauseButton.config(text="->")
+        self.updateGUI()
+
+    def stop_scan(self):
+        self.pauseButton.config(text="Pause")
+        self.stopButton.config(state=DISABLED)
+        self.startButton.config(state=NORMAL)
+        self.updateGUI()
+
+    def scan(self):
+        self.stopButton.config(state=NORMAL)
+        self.startButton.config(state=DISABLED)
+        #self.tpt.next(post_timeout = 2.0) 
+        ok = False
+        for slide in range(1, 80):
+            log.debug("Scanning count: " + str (slide)) 
+            if self.tpt == None:
+                return
+            while (self.tpt.get_status(busy = True, debug = False)):
+                self.updateGUI()
+                self.update()
+            self.led.continuous (1, 2000)
+            try:
+                self.cam.open()
+            except:
+                pass
+            try:
+                ok = self.cam.capture()
+            except:
+                pass
+            self.led.continuous (1, 200)
+            if (ok):
+                f = "/home/dan/pics/" + str(slide) + ".jpg"
+                log.debug ("Capture complete - Now save" + f )
+                self.cam.save(f)
+                self.cam.close()
+            self.tpt.next(post_timeout = 0)  #do the move - do not wait after starting move
+            self.updateGUI()
+            
+    ##        if self.auto_active:
+    ##            self.lock.acquire()
+    ##            if not self.timer_active:
+    ##                self.timer_active = True
+    ##                log.debug ("Start Delay(ms): " + self.auto_delay)
+    ##                self.gui.after(int (self.auto_delay), self.timer_event)
+    ##            self.lock.release()
+            #self.count = self.count + 1
+            #if (self.count >= 81): self.stop_auto()
 
     
     def gui (self, state):
@@ -298,25 +256,17 @@ class EktaproGUI(Tk):
         self.updateGUI()
 
     def updateGUI(self, event=None):
-        if self.tpt == None:
-            return
-        self.slide = self.tpt.slide
-        self.gotoSlideScale.set(self.slide)
+        self.gotoSlideScale.set(self.tpt.slide)
 
     def gotoSlideChanged(self, event):
-        if self.tpt is None:
-            return
         newSlide = self.gotoSlideScale.get()
-        if not self.slide == newSlide:
-            self.tpt.select(newSlide)
-            self.slide = newSlide
+        self.tpt.select(newSlide)
 
     def nextPressed(self):
         log.debug ("next pressed")
-        if self.startButton.config()["state"][4] == "disabled":
-            self.pauseTimer()
-        else:
-            self.next()
+        #if self.startButton.config()["state"][4] == "disabled":
+        self.next()
+        self.updateGUI()
 
     def prevPressed(self):
         log.debug ("prev pressed")
@@ -324,40 +274,13 @@ class EktaproGUI(Tk):
             self.toggleStandby()
         else:
             self.prev()
-
+            self.updateGUI()
+        
     def next(self):
-        if self.tpt is None:
-            return
-        self.timerController.next()
-        self.updateGUI()
-
+        self.tpt.next(pre_timeout = 1.5, post_timeout = 1.5)
+        
     def prev(self):
-        if self.tpt is None:
-            return
-        self.timerController.prev()
-        self.updateGUI()
-
-    def startTimer(self):
-        self.stopButton.config(state=NORMAL)
-        self.startButton.config(state=DISABLED)
-        self.timerController.start_auto()
-
-    def pauseTimer(self):
-        if self.timerController.pause_auto:
-            self.pauseButton.config(text="II")
-            self.timerController.resume()
-            self.updateGUI()
-        else:
-            self.pauseButton.config(text="->")
-            self.timerController.pause()
-            self.updateGUI()
-
-    def stopTimer(self):
-        self.pauseButton.config(text="Pause")
-        self.stopButton.config(state=DISABLED)
-        self.startButton.config(state=NORMAL)
-        self.timerController.stop_auto()
-        self.updateGUI()
+        self.tpt.prev(pre_timeout = 1.5, post_timeout = 1.5)
 
     def enable_camera_toggle(self):
        #self.enable_camera.cycle = True if self.cycle.get() == 1 else False
@@ -377,15 +300,13 @@ class EktaproGUI(Tk):
         except:
             log.warn ("LED device not connected")
         self.led.strobe(1,0,4000,4)
-        self.led.continuous (1, 200)
+        self.led.continuous (1, 100)
         
         #ektapro setup
         self.tpt.open(None)
-        #log.info (str(self.tpt))
         self.tpt.reset()
        
-        #camera setup
-        #none required
+        #camera setup #none required
 
     def onQuit(self):
         self.tpt.close()

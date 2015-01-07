@@ -18,54 +18,45 @@ class GardasoftDevice:
     def open(self, port):
         self.ver = ""
         self.connected = 0
-        try:
-            log.debug ("Close port")
-            self.ser.close()
-        except:
-            log.debug ("Port is closed")
+        #self.ser.close()
         if (port is None):
             for port, desc, hwid in sorted(comports(), reverse=True):
-                log.info("Trying port: " + port + " Desc: " + desc + " HW ID: " + hwid)
-                try:
-                    self.ser = serial.serial_for_url(port, 9600, timeout=.1, writeTimeout=.01)
-                    log.info("Port opened: " + port)
-                    try:
-                        fcntl.flock(self.ser, fcntl.LOCK_EX | fcntl.LOCK_NB )
-                    except IOError:
-                        log.info( "Can not immediately write-lock the file as it is locked: " + port)
-                    else:
-                        log.info ("Port not locked. Check for device at 9600 baud: " + port)
-                        self.ser.flush() 
-                        self.ser.read(200) #clear any junk
-                        self.connected = 1
-                        if (self.clear_error()):
-                            self.ser.timeout = .01
-                            self.ver = self.version()
-                            return 1
-                        self.connected = 0
-                        self.ser.close()
-                        log.info ("Check for device at 115200 baud: " + port)
-                        #todo should also check lock here
-                        self.ser = serial.serial_for_url(port, 115200, timeout=.1, writeTimeout=.01)
-                        self.ser.flush()
-                        self.ser.read(200) #clear any junk
-                        self.connected = 1
-                        if (self.clear_error()):
-                            self.ser.timeout = .01
-                            self.connected = 1
-                            return 1
-                        self.connected = 0
-                        self.ser.close()
-                        
-                except serial.SerialException:
-                    logging.error("Serial exception")
-                    pass
-                except IOError:
-                    logging.error("Not a Gardasoftdevice")
-            return 0        
+                if (self.open_port( port)):
+                    return True
         else:
-            log.error("Not implements")
-        return 
+            if (self.open_port( port)):
+                return True
+        return False
+
+    def open_port(self, port):
+        log.info("Trying port: " + port)
+        try:
+            collection = [ 9600, 115200]
+            for speeds in collection:
+                self.ser = serial.serial_for_url(port, speeds, timeout=.1, writeTimeout=.01)
+                log.info("Port opened: " + port)
+                try:
+                    fcntl.flock(self.ser, fcntl.LOCK_EX | fcntl.LOCK_NB )
+                except IOError:
+                    log.info( "Can not immediately write-lock the file as it is locked: " + port)
+                else:
+                    log.info ("Port not locked. Check for device at: " + str(speeds) + " baud. Port: " + port)
+                    self.ser.flush() 
+                    self.ser.read(2000) #clear any junk
+                    self.connected = 1
+                    if (self.clear_error()):
+                        self.ser.timeout = .1 #tried .01 but random errors 
+                        self.ver = self.version()
+                        return 1
+                    self.connected = 0
+                    self.ser.close()
+        except serial.SerialException:
+            logging.error("Serial exception")
+            pass
+        except IOError:
+            logging.error("Not a Gardasoftdevice")
+            return 0
+        
 
     def write_read(self, mess, read_char):
         if (self.connected):
