@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """
 
-   Ektapro v1.0
+   ektapro v1.0
    
-
    Copyright 2010 Julian Hoch
    Copyright 2014 Dan Tyrrell
 
@@ -19,8 +18,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
    
-   This program serves as a controller for the ektapro slide projector
-   devices. One projector per serial port is supported.
+   Class for the ektapro slide projector devices.
+   One projector per serial port is supported.
+   
 """
 import serial, pprint, time, logging, fcntl
 try:
@@ -32,76 +32,146 @@ log = logging.getLogger(__name__)
 
 class EktaproDevice:
 
-    #Encapsulates the logic to control a single Ektapro slide projector.
+    #Encapsulates the logic to control a Ektapro slide projector.
     def __init__(self):
-        # own temporary values
         self.maxBrightness = 100
         self.brightness = 0
         self.slide = 0
         self.maxDisplayTray = 140
         self.projektorID = 0
         self.info = None
+        self.projektorID = 0
+        self.projektorVersion = ""
+        self.projektorType = 0
+        self.serialDevice = None
+        self.connected = 0
         #self.pre_timeout = 2
         #self.post_timeout = 2
 
     def open_port(self, port):
+        self.close()
+        log.info("Checking port: " + port)
+        try:
+            s = serial.serial_for_url(port, 9600, timeout=.01, writeTimeout=.01)
+            try:
+                fcntl.flock(s, fcntl.LOCK_EX | fcntl.LOCK_NB )
+            except IOError:
+                log.info("Can not immediately write-lock the file ($!), blocking ...")
+            else:
+                s.write(EktaproCommand(0).statusSystemReturn().toData())
+                self.info = s.read(5)
+                info = self.info
+                if info == None or len(info) == 0 \
+                    or not (ord(info[0]) % 8 == 6) \
+                    or not (ord(info[1]) / 16 == 13) \
+                    or not (ord(info[1]) % 2 == 0):
+                    logging.info("Not a Ektapro device")
+                else:
+                    self.serialDevice = s
+                    self.connected = 1 
+                    return 1
+        except serial.SerialException:
+            pass
+        except IOError:
+            logging.error("Not a Ektapro device")
+        return 0
+     
+    def open(self, port):
         if (port is None):
             for port, desc, hwid in sorted(comports(), reverse=True):  #usb is first!
-                log.info("Trying port: " + port + " --- " + desc + " --- " + hwid)
-                try:
-                    s = serial.serial_for_url(port, 9600, timeout=.5, writeTimeout=.5)
-                    try:
-                        fcntl.flock(s, fcntl.LOCK_EX | fcntl.LOCK_NB )
-                        #fcntl.flock(open('/tmp/locktest', 'r'), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    except IOError:
-                        log.info("Can't immediately write-lock the file ($!), blocking ...")
-                    else:
-                        log.debug("No error")
-                        s.write(EktaproCommand(0).statusSystemReturn().toData())
-                        self.info = s.read(5)
-                        info = self.info
-                        if info == None or len(info) == 0 \
-                            or not (ord(info[0]) % 8 == 6) \
-                            or not (ord(info[1]) / 16 == 13) \
-                            or not (ord(info[1]) % 2 == 0):
-                            logging.info("Not a Ektapro device")
-                        else:
-                            self.serialDevice = s
-                            return 1
-                except serial.SerialException:
-                    pass
-                except IOError:
-                    logging.error("Not a Ektapro device")
-            return 0        
-        #else:
-            #replace with insert into has and use above 
-##            log.info('Open port: ' + port)
-##            try:
-##                s = serial.serial_for_url(port, 9600, timeout=1, writeTimeout=.01)
-##                s.write(EktaproCommand(0).statusSystemReturn().toData())
-##                self.info = s.read(5)
-##                info = self.info
-##                if info == None or len(info) == 0 \
-##                    or not (ord(info[0]) % 8 == 6) \
-##                    or not (ord(info[1]) / 16 == 13) \
-##                    or not (ord(info[1]) % 2 == 0):
-##                    logging.error("Not a Ektapro device")
-##                else:
-##                    self.serialDevice = s
-##                    return 1
-##            except serial.SerialException:
-##                pass
-##            except IOError:
-##                logging.error("Not a Ektapro device")
-        return 0
-      
-    def open(self, port):
-        if (self.open_port(port)):
-            self.serialDevice.write(EktaproCommand(0).statusSystemReturn().toData())
-            self.info = self.serialDevice.read(5)
-            # from info string delivered by device
+                if (self.open_port (port)):
+                    break
+        else:
+            self.open_port (port)
+        self.get_status()
+     
+    def reset(self):
+        self.setStandby(False)
+        self.gotoSlide(1)
+        self.setBrightness(0)
+        self.standby = False
+
+    def close(self):
+        if (self.connected):
+            try:
+                self.serialDevice.close()
+            except:
+                pass
+        self.connected = 0
+        self.get_status()
+       
+    def toggleStandby(self):
+        self.standby = not self.standby
+        self.setStandby(self.standby)
+        
+    def __str__(self):
+        self.get_model()
+        
+    def get_model(self): 
+        modelStrings = {
+            0: "Unknown",
+            7: "4010 / 7000",
+            4: "4020",
+            5: "5000",
+            6: "5020",
+            8: "7010 / 7020",
+            9: "9000",
+            10: "9010 / 9020"
+        }
+        return "Kodak Ektapro model: " \
+               + modelStrings.get(self.projektorType, "Unknown") \
+               + " Id: " + unicode(self.projektorID) \
+               + " Version: " + unicode(self.projektorVersion)
+
+    def setStandby(self, on):
+        self.comms(EktaproCommand(self.projektorID).setStandby(on),0,0,0)
+ 
+    def setBrightness(self, brightness):
+        self.comms(EktaproCommand(self.projektorID).paramSetBrightness(brightness * 10),0,0,0)
+        self.brightness = brightness 
+
+    def reset(self):
+        self.comms( EktaproCommand(self.projektorID).directResetSystem(),0,0,0)
+
+    def select(self, slide):
+        self.comms(EktaproCommand(self.projektorID).paramRandomAccess(slide),0,1,.5)
+        self.slide = slide
+
+    def next(self, pre_timeout , post_timeout):
+        self.comms(EktaproCommand(self.projektorID).directSlideForward(),0,pre_timeout, post_timeout)
+        self.slide = self.slide + 1
+        if self.slide > self.traySize:
+            self.slide = 0 #? 1
+ 
+    def prev(self):
+        self.comms(EktaproCommand(self.projektorID).directSlideBackward(),0, 1.5, 0)
+        self.slide = self.slide - 1
+        if self.slide == -1:
+            self.slide = self.traySize
+
+    def sync(self):
+        s = self.comms(EktaproCommand(self.projektorID).statusGetTrayPosition(), 3, 0, 0)
+        if (self.connected):
+            if (len (s) != 3) \
+                or not (ord(s[0]) % 8 == 6) \
+                or not (ord(s[1]) / 16 == 10):
+                log.error ("get_status invalid response" ) #could raise error here?
+            else:    
+                self.slide = int(str(ord(s[2])))
+
+    def get_status(self, busy = 0):
+        if (busy):
+            return self.get_system_status()
+        else:
+            self.get_system_return()
+            self.get_system_status()
+            log.debug (self.get_details())
+
+    def get_system_return (self):
+        self.info = self.comms(EktaproCommand(self.projektorID).statusSystemReturn(), 5, 0, 0)
+        if (self.connected and (len (self.info) == 5) ):
             info = self.info
-            self.projektorID = ord(info[0]) / 16
+            #self.projektorID = ord(info[0]) / 16 - do not change based on returned values
             self.projektorType = ord(info[2]) / 16
             self.projektorVersion = str(ord(info[2]) % 16) + "." \
                 + str(ord(info[3]) / 16) \
@@ -113,175 +183,110 @@ class EktaproDevice:
             self.traySize = 140 if ord(info[4]) & 8 == 1 else 80
             self.activeLamp = (ord(info[4]) & 4) / 4
             self.standby = (ord(info[4]) & 2) /2
-            self.highLight = ord(info[4]) & 1 
-     
-    def reset(self):
-        self.setStandby(False)
-        self.gotoSlide(1)
-        self.setBrightness(0)
-        self.standby = False
+            self.highLight = ord(info[4]) & 1
+        else:
+            self.info = None
+            self.projektorType = None
+            self.projektorVersion = None
+            self.powerFrequency = None
+            self.autoFocus = None
+            self.autoZero = None
+            self.lowLamp = None
+            self.traySize = None
+            self.activeLamp = None
+            self.standby = None
+            self.highLight = None
 
-    def close(self):
-        self.reset()
-        self.serialDevice.close()
-       
-    def toggleStandby(self):
-        self.standby = not self.standby
-        self.setStandby(self.standby)
-        
-    def __str__(self):
-        modelStrings = {
-            7: "4010 / 7000",
-            4: "4020",
-            5: "5000",
-            6: "5020",
-            8: "7010 / 7020",
-            9: "9000",
-            10: "9010 / 9020"
-        }
+    def get_system_status(self):
+        s = self.comms(EktaproCommand(self.projektorID).statusSystemStatus(), 3, 0, 0)
+        if (self.connected and (len (s) == 3) ):
+            if not (ord(s[0]) % 8 == 6) or not (ord(s[2]) % 4 == 3):
+                #or not (ord(s[1]) % 64 == 3) \ #should be 11XX XXXX don't check for now
+                log.error ("get_status invalid response")
+                raise IOError, "Invalid response"
+            #self.projector_id = ord(s[0]) / 8 - do not change based on returned values 
+            self.unknown_flag1 = (ord(s[1]) & 16 ) / 16  #this is undocumented - seems to be on after reset process
+            self.unknown_flag2 = (ord(s[1]) & 32 ) / 32
+            self.lamp1_status = (ord(s[1]) & 8) / 8
+            self.lamp2_status = (ord(s[1]) & 4) / 4
+            self.projector_status = (ord(s[1]) & 2) / 2
+            self.at_zero_position = ord(s[1]) & 1
+            self.slide_lift_motor_error = (ord(s[2]) & 128) /128
+            self.tray_transport_motor_error = (ord(s[2]) & 64) / 64
+            self.command_error = (ord(s[2]) & 32)  / 32
+            self.overrun_error = (ord(s[2]) & 16) / 16 
+            self.buffer_overflow_error = (ord(s[2]) & 8) / 8
+            self.framing_error = (ord(s[2]) & 4) / 4
+        else:
+            self.unknown_flag1 = None
+            self.unknown_flag2 = None
+            self.lamp1_status = None
+            self.lamp2_status = None
+            self.projector_status = None
+            self.at_zero_position = None
+            self.slide_lift_motor_error = None
+            self.tray_transport_motor_error = None
+            self.command_error = None
+            self.overrun_error = None
+            self.buffer_overflow_error = None
+            self.framing_error = None
+        return self.projector_status
 
-        return "Kodak Ektapro " \
-               + modelStrings.get(self.projektorType, "Unknown") \
-               + " id=" + unicode(self.projektorID) \
-               + " Version " + unicode(self.projektorVersion)
-
-    def get_details(self):
-        return "Power frequency: " + ("60Hz" if self.powerFrequency == 1 else "50Hz") \
-               + "\n Autofocus: " + ("On" if self.autoFocus == 1 else "Off") \
-               + "\n Autozero: " + ("On" if self.autoZero == 1 else "Off") \
-               + "\n Low lamp mode: " + ("On" if self.lowLamp == 1 else "Off") \
-               + "\n Tray size: " + str(self.traySize) \
-               + "\n Active lamp: " + ("L2" if self.activeLamp == 1 else "L1") \
-               + "\n Standby: " + ("On" if self.standby == 1 else "Off") \
-               + "\n High light: " + ("On" if self.highLight == 1 else "Off")\
-               + "\n Flag 1: " + str(self.unknown_flag1 ) \
-               + "\n Flag 2: "  + str(self.unknown_flag2 ) \
-               + "\n Busy: " + str(self.projector_status) \
-               + "\n At zero: " + str(self.at_zero_position) \
-               + "\n Slide lift motor error: " + str(self.slide_lift_motor_error) \
-               + "\n Tray transport motor error: " + str(self.tray_transport_motor_error) \
-               + "\n Command Error: " + str(self.command_error ) \
-               + "\n Over run error: " + str(self.overrun_error) \
-               + "\n buffer_overflow_error" + str( self.buffer_overflow_error) \
-               + "\n overrun_error" + str(self.overrun_error) \
-               + "\n self.framing_error" + str(self.framing_error) 
-
-    def setStandby(self, on):
-        c = EktaproCommand(self.projektorID).setStandby(on)
-        log.info(str(c))
-        self.serialDevice.write(c.toData())
-
-    def setBrightness(self, brightness):
-        c = EktaproCommand(self.projektorID).paramSetBrightness(brightness * 10)
-        log.info(str(c))
-        self.serialDevice.write(c.toData())
-        self.brightness = brightness
-
-    def reset(self):
-        c = EktaproCommand(self.projektorID).directResetSystem()
-        log.info(str(c))
-        try: #might be disconnected
-            self.serialDevice.write(c.toData())
-        except IOError as e:
-            log.debug ("I/O error: "  + str(e.errno))
-        except ValueError:
-            print "Could not convert data to an integer."      
-        except serial.SerialException:
-            log.info("reset port serial error")
+    def comms (self, command, read_bytes, pre_timeout, post_timeout):
+        rec = ""
+        log.debug ("Send: " + str (command) + " hex: " + repr (command.toData()))
+        self.busy(pre_timeout)
+        if (self.connected):
+            try: #might be disconnected or port removed or....
+                self.serialDevice.write(command.toData())
+            except:
+                raise
+        else:
+            log.debug ("ignore - device not connected")
+        if(self.connected and read_bytes):
+            try:
+                rec = self.serialDevice.read(read_bytes)
+            except:
+                raise
+            log.debug ("Revd: " + repr(rec) + " len: " + str(len (rec)))         
+        self.busy(post_timeout)
+        return rec
             
     def busy(self, timeout):
+        if ( self.connected == 0 or timeout == 0 ):
+            return
         busy = True
         ts = time.time()
         if (timeout > 0 ):
             while busy:
-                status = self.get_status()
-                busy = (self.projector_status == 1)
+                busy = self.get_status(busy = 1)
+                #busy = (self.projector_status == 1)
                 if (time.time () - ts > timeout):
                     log.error("Busy timeout")
                     raise IOError, "Busy timeout"
             log.debug ( "Busy for: " + str(time.time () - ts))
-
-    def select(self, slide):
-        c = EktaproCommand(self.projektorID).paramRandomAccess(slide)
-        log.info(str(c))
-        self.busy(1)
-        self.serialDevice.write(c.toData())
-        self.slide = slide
-
-    def next(self, pre_timeout , post_timeout):
-        c = EktaproCommand(self.projektorID).directSlideForward()
-        log.info(str(c))
-        self.busy(pre_timeout)
-        self.serialDevice.write(c.toData())
-        self.slide = self.slide + 1
-        if self.slide > self.traySize:
-            self.slide = 0 #? 1
-        self.busy(post_timeout)
-
-    def prev(self):
-        c = EktaproCommand(self.projektorID).directSlideBackward()
-        log.info(str(c))
-        self.busy(1.5)
-        self.serialDevice.write(c.toData())
-        self.slide = self.slide - 1
-        if self.slide == -1:
-            self.slide = self.traySize
-
-    def get_status(self):
-        c = EktaproCommand(self.projektorID).statusSystemStatus()
-        self.serialDevice.write(c.toData())
-        s = self.serialDevice.read(3)
-        if not (ord(s[0]) % 8 == 6) or not (ord(s[2]) % 4 == 3):
-            #or not (ord(s[1]) % 64 == 3) \ #should be 11XX XXXX don't check for now
-            log.error ("get_status invalid response. Sent: " + c.toData() + " Revd: " + repr(s))  
-            raise IOError, "Invalid response"
-        self.projector_id = ord(s[0]) / 8
-        #this is undocumented - seems to be on after reset processs
-        self.unknown_flag1 = (ord(s[1]) & 16 ) / 16
-        self.unknown_flag2 = (ord(s[1]) & 32 ) / 32
-        self.lamp1_status = (ord(s[1]) & 8) / 8
-        self.lamp2_status = (ord(s[1]) & 4) / 4
-        self.projector_status = (ord(s[1]) & 2) / 2
-        self.at_zero_position = ord(s[1]) & 1
-        self.slide_lift_motor_error = (ord(s[2]) & 128) /128
-        self.tray_transport_motor_error = (ord(s[2]) & 64) / 64
-        self.command_error = (ord(s[2]) & 32)  / 32
-        self.overrun_error = (ord(s[2]) & 16) / 16 
-        self.buffer_overflow_error = (ord(s[2]) & 8) / 8
-        self.framing_error = (ord(s[2]) & 4) / 4
-        log.debug (self.get_details())
-
-    def print_status(self):
-        log.debug ("unknown_flag1" + str(self.unknown_flag1 ))
-        log.debug ("unknown_flag2" + str(self.unknown_flag2 ))
-        log.debug ("projector_status" + str(self.projector_status))
-        log.debug ("at_zero_position" + str(self.at_zero_position))
-        log.debug ("slide_lift_motor_error" + str(self.slide_lift_motor_error))
-        log.debug ("tray_transport_motor_error" + str(self.tray_transport_motor_error))
-        log.debug ("command_error" + str(self.command_error ))
-        log.debug ("overrun_error" + str(self.overrun_error))
-        log.debug ("buffer_overflow_error" + str( self.buffer_overflow_error))
-        log.debug ("overrun_error" + str(self.overrun_error))
-        log.debug ("self.framing_error" + str(self.framing_error))
-             
-
-    def sync(self):
-        log.debug ("sync")
-        c = EktaproCommand(self.projektorID).statusGetTrayPosition()
-        log.debug ("sync. Send: " + str (c) + " hex: " + repr (c.toData()))
-        log.debug ("sync2")
-        self.serialDevice.write(c.toData())
-        s = self.serialDevice.read(3)
-        log.debug ("GetTray. Revd: " + repr(s))  
-##        if (len (s) != 3) \
-##            or not (ord(s[0]) % 8 == 6) \
-##            or not (ord(s[1]) / 16 == 10):
-##            log.error ("get_status invalid response. Sent: " + c.toData() + " Revd: " + repr(s))  
-##            #raise IOError, "Invalid response"
-##        else:    
-##            self.slide = int(str(ord(s[2])))
-
-
+       
+    def get_details(self):
+        return   "\n Model: " + self.get_model() \
+               + "\n Projector Busy: " + str(self.projector_status) \
+               + "\n At zero: " + str(self.at_zero_position) \
+               + "\n Slide lift motor error: " + str(self.slide_lift_motor_error) \
+               + "\n Tray transport motor error: " + str(self.tray_transport_motor_error) \
+               + "\n Command Error: " + str(self.command_error ) \
+               + "\n Buffer overflow: " + str( self.buffer_overflow_error) \
+               + "\n Overrun error: " + str(self.overrun_error) \
+               + "\n Framing error: " + str(self.framing_error) \
+               + "\n Tray size: " + str(self.traySize) \
+               + "\n Active lamp: " + ("L2" if self.activeLamp == 1 else "L1") \
+               + "\n Standby: " + ("On" if self.standby == 1 else "Off") \
+               + "\n Flag 1: " + str(self.unknown_flag1 ) \
+               + "\n Flag 2: "  + str(self.unknown_flag2 ) \
+               + "\n Power frequency: " + ("60Hz" if self.powerFrequency == 1 else "50Hz") \
+               + "\n Autofocus: " + ("On" if self.autoFocus == 1 else "Off") \
+               + "\n Autozero: " + ("On" if self.autoZero == 1 else "Off") \
+               + "\n Low lamp mode: " + ("On" if self.lowLamp == 1 else "Off") \
+               + "\n High light: " + ("On" if self.highLight == 1 else "Off")
+     
 class EktaproCommand:
 
     """

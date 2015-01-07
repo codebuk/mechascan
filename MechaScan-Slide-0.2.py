@@ -55,7 +55,7 @@ class TimerController:
         if self.t_tpt == None:
             return
         if (self.start_slot <=  self.count):
-            self.t_led.continuous (0, 4000)
+            self.t_led.continuous (1, 4000)
             self.t_cam.open()
             ok = self.t_cam.capture()
             if (ok):
@@ -63,7 +63,7 @@ class TimerController:
                 log.debug ("Capture complete - Now save" + f )
                 self.t_cam.save(f)
                 self.t_cam.close()
-            self.t_led.continuous (0, 200)
+            self.t_led.continuous (1, 200)
             self.t_tpt.next(2, 0)  #do the move - do not wait after starting move
         
         if self.auto_active:
@@ -222,7 +222,7 @@ class EktaproGUI(Tk):
         self.menubar.add_cascade(label="Tools", menu=self.toolsmenu)
         self.menubar.add_cascade(label="Help", menu=self.helpmenu)
         self.configure(menu=self.menubar)
-        self.init_hardware()
+        #self.init_hardware()
         self.gui ("Enable")
         self.updateGUI("Connect")
 
@@ -279,7 +279,7 @@ class EktaproGUI(Tk):
             self.statusButton.config(state=DISABLED)
 
     def status (self):
-        self.tpt.get_status()
+        self.tpt.get_system_status()
     
     def sync(self):
         self.tpt.sync()
@@ -369,11 +369,12 @@ class EktaproGUI(Tk):
             self.led.version()
         except:
             log.warn ("LED device not connected")
-        self.led.strobe(0,0,4000,4)
+        self.led.strobe(1,0,4000,4)
+        self.led.continuous (1, 200)
         
         #ektapro setup
         self.tpt.open(None)
-        log.info (str(self.tpt))
+        #log.info (str(self.tpt))
         self.tpt.reset()
        
         #camera setup

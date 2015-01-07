@@ -19,10 +19,10 @@ class GardasoftDevice:
         self.ver = ""
         self.connected = 0
         try:
+            log.debug ("Close port")
             self.ser.close()
         except:
-            log.debug ("Port allready closed")
-            
+            log.debug ("Port is closed")
         if (port is None):
             for port, desc, hwid in sorted(comports(), reverse=True):
                 log.info("Trying port: " + port + " Desc: " + desc + " HW ID: " + hwid)
@@ -30,12 +30,12 @@ class GardasoftDevice:
                     self.ser = serial.serial_for_url(port, 9600, timeout=.1, writeTimeout=.01)
                     log.info("Port opened: " + port)
                     try:
-                        fcntl.flock(self.ser, fcntl.LOCK_EX)
+                        fcntl.flock(self.ser, fcntl.LOCK_EX | fcntl.LOCK_NB )
                     except IOError:
                         log.info( "Can not immediately write-lock the file as it is locked: " + port)
                     else:
                         log.info ("Port not locked. Check for device at 9600 baud: " + port)
-                        self.ser.flush()
+                        self.ser.flush() 
                         self.ser.read(200) #clear any junk
                         self.connected = 1
                         if (self.clear_error()):
@@ -46,11 +46,12 @@ class GardasoftDevice:
                         self.ser.close()
                         log.info ("Check for device at 115200 baud: " + port)
                         #todo should also check lock here
-                        self.ser = serial.serial_for_url(port, 115200, timeout=1, writeTimeout=.01)
+                        self.ser = serial.serial_for_url(port, 115200, timeout=.1, writeTimeout=.01)
                         self.ser.flush()
                         self.ser.read(200) #clear any junk
                         self.connected = 1
                         if (self.clear_error()):
+                            self.ser.timeout = .01
                             self.connected = 1
                             return 1
                         self.connected = 0
@@ -63,37 +64,18 @@ class GardasoftDevice:
                     logging.error("Not a Gardasoftdevice")
             return 0        
         else:
-            log.info('open port ' + port)
-            try:
-                self.ser = serial.serial_for_url(port, 9600, timeout=1, writeTimeout=.01)
-                if (self.clear_error()):
-                    return 1
-            except serial.SerialException:
-                pass
-            except IOError:
-                log.error("Not a Gardasoftdevice")
+            log.error("Not implements")
         return 
 
     def write_read(self, mess, read_char):
         if (self.connected):
-            try: #if (self.ser.isOpen ()): 
+            try:
                 self.ser.write(unicode( mess))
                 self.ser.flush()
                 info = self.ser.read(read_char)
-                return info  
-            except serial.SerialException:
-                print "Serial error"
-                pass
-            except IOError as e:
-                print "I/O error({0}): {1}" + format(e.errno, e.strerror)
-                log.error("IO ")
-            #else:
-            #    self.connected = 0
-            #    return None
-        else:
-            log.debug("Device not connected. Ignore message: " + repr (mess))
-            self.connected = 0
-            return None
+                return info
+            except:
+                raise
 
     def close(self):
         self.connected = 0
@@ -114,7 +96,7 @@ class GardasoftDevice:
             ver = re.search("\A.*VR(.*)\n\r>\Z", info, re.DOTALL)
             if ver:
                 name = ver.group(1)
-                log.info('version -' + name)
+                log.debug('version -' + name)
                 return name
             else:
                 log.error('version not valid' + repr(info))
@@ -137,14 +119,14 @@ class GardasoftDevice:
             if (re.search("GRErr 21", info, re.DOTALL)):
                 log.debug('Err 21 - Bad command format')
                 return 1
-            if (re.search("GRErr", info, re.DOTALL)):
+            if (re.search("GRE", info, re.DOTALL)):
                 log.debug('Other error see docs')
                 return 1
         return 0
         
     def all_off(self):
-        self.continuous(0, 0)
         self.continuous(1, 0)
+        self.continuous(2, 0)
         log.debug('All off OK')
 
     def continuous(self, channel, current):
