@@ -39,5 +39,5 @@ def test1(l):
         led.all_off()
         sys.stderr.write('ERROR: %s\n' % str(err))
 
-test1(2)
+test1(1)
 #test1(2)

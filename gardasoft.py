@@ -1,4 +1,5 @@
 import sys, serial, io, re, logging, fcntl
+from builtins import *
 log = logging.getLogger(__name__)
 
 try:
