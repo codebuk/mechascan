@@ -122,8 +122,8 @@ class EktaproDevice:
         }
         return "Kodak Ektapro model: " \
                + modelStrings.get(self.projektorType, "Unknown") \
-               + " Id: " + unicode(self.projektorID) \
-               + " Version: " + unicode(self.projektorVersion)
+               + " Id: " + str(self.projektorID) \
+               + " Version: " + str(self.projektorVersion)
 
     def setStandby(self, on):
         self.comms(EktaproCommand(self.projektorID).setStandby(on))
@@ -227,7 +227,7 @@ class EktaproDevice:
             if not (ord(s[0]) % 8 == 6) or not (ord(s[2]) % 4 == 3):
                 #or not (ord(s[1]) % 64 == 3) \ #should be 11XX XXXX don't check for now
                 log.error ("get_status invalid response")
-                raise IOError, "Invalid response"
+                raise IOError("Invalid response")
             #self.projector_id = ord(s[0]) / 8 - do not change based on returned values 
             self.unknown_flag1 = (ord(s[1]) & 16 ) / 16  #this is undocumented - seems to be on after reset process
             self.unknown_flag2 = (ord(s[1]) & 32 ) / 32
@@ -295,7 +295,7 @@ class EktaproDevice:
                 busy = self.get_status(busy = 1 , debug = False)
                 if (time.time () - ts > timeout):
                     log.error("Busy " + desc + " timeout: " + str(timeout))
-                    raise IOError, "Busy timeout"
+                    raise IOError("Busy timeout")
             log.debug ( desc + "busy for: " + str(time.time () - ts))
        
     def get_details(self):
@@ -340,11 +340,11 @@ class EktaproCommand:
             self.arg2 = args[2]
             self.initalized = True
         else:
-            raise Exception, "Argument count invalid"
+            raise Exception("Argument count invalid")
         
     def toData(self):
         if not self.initalized:
-            raise Exception, "Command not initialized"
+            raise Exception("Command not initialized")
 
         return chr(self.projektorID * 8 + self.mode * 2 + 1) \
             + chr(self.arg1) + chr(self.arg2)
