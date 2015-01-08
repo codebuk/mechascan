@@ -1,5 +1,4 @@
 import sys, serial, io, re, logging, fcntl
-from builtins import *
 log = logging.getLogger(__name__)
 
 try:
@@ -130,7 +129,7 @@ class GardasoftDevice:
             return 0
         er = re.search("\A" + com + "(>)\Z", info, re.DOTALL)
         if er:
-            log.debug(mesg) # + "--" + unicode (info) )
+            log.debug(mesg) 
         else:
             log.error ("Send: " + mesg + "  len: " + str(z) + " response size: " + str (len(info)) + " Response: " + str (info))
             raise Exception('Bad continous response' + repr(info))

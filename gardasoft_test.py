@@ -40,4 +40,4 @@ def test1(l):
         sys.stderr.write('ERROR: %s\n' % str(err))
 
 test1(1)
-#test1(2)
+test1(2)
