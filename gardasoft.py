@@ -61,7 +61,7 @@ class GardasoftDevice:
     def write_read(self, mess, read_char):
         if (self.connected):
             try:
-                self.ser.write(unicode( mess))
+                self.ser.write(str( mess))
                 self.ser.flush()
                 info = self.ser.read(read_char)
                 return info
@@ -121,9 +121,9 @@ class GardasoftDevice:
         log.debug('All off OK')
 
     def continuous(self, channel, current):
-        com = 'RC' + unicode(channel) + "C0V" + unicode(current) + "\n\r"
+        com = 'RC' + str(channel) + "C0V" + str(current) + "\n\r"
         z = len (com)
-        mesg = 'continous ' + unicode(channel) + ' - ' + unicode(current) + " - " + repr(com)
+        mesg = 'continous ' + str(channel) + ' - ' + str(current) + " - " + repr(com)
         info = self.write_read ( com , z + 1)
         if (info == None):
             return 0
@@ -131,7 +131,7 @@ class GardasoftDevice:
         if er:
             log.debug(mesg) # + "--" + unicode (info) )
         else:
-            log.error ("Send: " + mesg + "  len: " + str(z) + " response size: " + str (len(info)) + " Response: " + unicode (info))
+            log.error ("Send: " + mesg + "  len: " + str(z) + " response size: " + str (len(info)) + " Response: " + str (info))
             raise Exception('Bad continous response' + repr(info))
 
     def strobe(self, channel, min_current, max_current, count):
