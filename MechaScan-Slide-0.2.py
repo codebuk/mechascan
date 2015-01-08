@@ -3,11 +3,6 @@
    MechaScan-Slide
    
    Copyright (C) 2014,2015 Breager Pty. Ltd.
-
-   This program serves as a controller for the ektapro slide projector
-   devices. It searches for slide projector devices on the serial
-   ports on startup, and presents a GUI to manually control
-   the projectors or use a timer for automatic slideshows.
    One projector per serial port is supported.
 """
 
@@ -16,6 +11,7 @@ from Tkconstants import SINGLE, END, DISABLED, HORIZONTAL, BOTTOM, W, X, LEFT, \
     BOTH, RIGHT, N, TOP, NORMAL
 from Tkinter import Tk, Frame, Listbox, Button, Label, Entry, IntVar, \
     Checkbutton, Scale, Menu
+from enum import Enum
 import tkMessageBox
 import tkSimpleDialog
 import os, logging , fcntl
@@ -31,9 +27,12 @@ logging.basicConfig(level=logging.DEBUG,
 logit = logging.getLogger('gphoto2')
 logit.setLevel(logging.INFO)
 
+scan_state = Enum('scan_state', 'scanning stopped')
+
 class EktaproGUI(Tk):
     #Constructs the main program window and interfaces with the EktaproDevice
     def __init__(self):
+        self.scan_state = scan_state.stopped
         self.tpt = EktaproDevice()
         self.led = GardasoftDevice()
         self.cam = CameraDevice()
@@ -49,31 +48,34 @@ class EktaproGUI(Tk):
         #status panel
         self.statusLabel = Label(self.statusPanel, text="Status")
         self.statusLabel.pack(side=RIGHT, anchor=N, padx=4, pady=4)
+        #
+        self.busyLabel = Label(self.statusPanel, text="Busy")
+        self.busyLabel.pack(side=RIGHT, anchor=N, padx=4, pady=4)
         #control panel
         self.connectButton = Button(self.controlPanel, text="Connect Transport", command=self.connectButtonPressed)
         self.nextButton = Button(self.controlPanel, text=" > ", command=self.nextPressed)
         self.prevButton = Button(self.controlPanel, text=" < ", command=self.prevPressed)
         self.startButton = Button(self.controlPanel, text="Start Scanning", command=self.start_scan)
-        self.pauseButton = Button(self.controlPanel, text="II", command=self.pause_scan)
         self.stopButton = Button(self.controlPanel, text="Stop Scanning", command=self.stop_scan)
+        self.homeButton = Button(self.controlPanel, text="Home", command=self.home_pressed)
 
         self.timerLabel = Label(self.controlPanel, text="Stable Time")
         self.timerInput = Entry(self.controlPanel, width=3)
         self.timerInput.insert(0, "500")
         self.timerInput.bind("<KeyPress-Return>", self.inputValuesChanged)
-        self.timerInput.bind("<ButtonRelease>", self.updateGUI)
+        #self.timerInput.bind("<ButtonRelease>", self.updateGUI)
         
         self.start_slot_label = Label(self.controlPanel, text="Slot Start")
         self.start_slot_input = Entry(self.controlPanel, width=3)
         self.start_slot_input.insert(0, "1")
         self.start_slot_input.bind("<KeyPress-Return>", self.inputValuesChanged)
-        self.start_slot_input.bind("<ButtonRelease>", self.updateGUI)
+        #self.start_slot_input.bind("<ButtonRelease>", self.updateGUI)
 
         self.end_slot_label = Label(self.controlPanel, text="Slot End")
         self.end_slot_input = Entry(self.controlPanel, width=3)
         self.end_slot_input.insert(0, "80")
         self.end_slot_input.bind("<KeyPress-Return>", self.inputValuesChanged)
-        self.end_slot_input.bind("<ButtonRelease>", self.updateGUI)
+        #self.end_slot_input.bind("<ButtonRelease>", self.updateGUI)
         
         self.syncButton = Button(self.controlPanel, text="Get Position", command=self.sync)
         self.statusButton = Button(self.controlPanel,text="Status", command=self.status)
@@ -92,10 +94,10 @@ class EktaproGUI(Tk):
         #layout panels
         self.connectButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
         self.prevButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
+        self.homeButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
         self.nextButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
         self.startButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
-        self.pauseButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
-               
+                       
         self.stopButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
         self.syncButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
         self.statusButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
@@ -122,28 +124,27 @@ class EktaproGUI(Tk):
                                       "About MechaScan","MechaScan 0.1 (C)opyright Breager 2014"))
         self.filemenu.add_command(label="Exit", command=self.onQuit)
         self.menubar.add_cascade(label="File", menu=self.filemenu)
-        self.menubar.add_cascade(label="Tools", menu=self.toolsmenu)
         self.menubar.add_cascade(label="Help", menu=self.helpmenu)
         self.configure(menu=self.menubar)
         
         self.gui ("Enable")
-        self.updateGUI("Connect")
         self.init_hardware()
         self.update_clock()
-
-    #def capture_images(self):
-    #    log("Capture Images selected")
 
     def update_clock(self):
         now = time.strftime("%H:%M:%S")
         self.statusLabel.configure(text=now)
-        self.after(1000, self.update_clock)
-        self.updateGUI()
+        if (self.tpt.get_status_busy()):
+            self.busyLabel.configure(text= "Transport Busy")
+        else:
+            self.busyLabel.configure(text= "Transport Resting")
+        self.update()
+        self.after(100, self.update_clock)
+        
 
     def connectButtonPressed(self):
         self.init_hardware()
         self.gui ("Enable")
-        self.updateGUI("Connect")
 
     def inputValuesChanged(self, event):
         auto_delay = int(self.timerInput.get())
@@ -166,34 +167,28 @@ class EktaproGUI(Tk):
             log.debug ("End slot: " + unicode (end_slot))
         else:
             log.error ("End slot: " + unicode (end_slot))
-        self.updateGUI()
 
     def start_scan(self):
         self.stopButton.config(state=NORMAL)
         self.startButton.config(state=DISABLED)
         self.scan()
         
-    def pause_scan(self):
-        self.pauseButton.config(text="->")
-        self.updateGUI()
-
     def stop_scan(self):
-        self.pauseButton.config(text="Pause")
+        self.scan_state = scan_state.stopped
         self.stopButton.config(state=DISABLED)
         self.startButton.config(state=NORMAL)
-        self.updateGUI()
 
     def scan(self):
         self.stopButton.config(state=NORMAL)
         self.startButton.config(state=DISABLED)
-        #self.tpt.next(post_timeout = 2.0) 
+        self.scan_state = scan_state.scanning 
         ok = False
         for slide in range(1, 80):
             log.debug("Scanning count: " + str (slide)) 
-            if self.tpt == None:
+            if (self.scan_state == scan_state.stopped):
                 return
             while (self.tpt.get_status(busy = True, debug = False)):
-                self.updateGUI()
+                self.gotoSlideScale.set(self.tpt.slide)
                 self.update()
             self.led.continuous (1, 2000)
             try:
@@ -211,19 +206,7 @@ class EktaproGUI(Tk):
                 self.cam.save(f)
                 self.cam.close()
             self.tpt.next(post_timeout = 0)  #do the move - do not wait after starting move
-            self.updateGUI()
-            
-    ##        if self.auto_active:
-    ##            self.lock.acquire()
-    ##            if not self.timer_active:
-    ##                self.timer_active = True
-    ##                log.debug ("Start Delay(ms): " + self.auto_delay)
-    ##                self.gui.after(int (self.auto_delay), self.timer_event)
-    ##            self.lock.release()
-            #self.count = self.count + 1
-            #if (self.count >= 81): self.stop_auto()
 
-    
     def gui (self, state):
         if (state == "Enable"):
             self.gotoSlideScale.config(state=NORMAL)
@@ -248,36 +231,26 @@ class EktaproGUI(Tk):
     
     def sync(self):
         self.tpt.sync()
-        self.updateGUI()
 
-    def reconnect(self):
-        self.tpt.close()
-        self.tpt.init()
-        self.updateGUI()
-
-    def updateGUI(self, event=None):
+    def home_pressed(self):
+        self.tpt.select(0)
         self.gotoSlideScale.set(self.tpt.slide)
-
+        
     def gotoSlideChanged(self, event):
         newSlide = self.gotoSlideScale.get()
         self.tpt.select(newSlide)
+        self.gotoSlideScale.set(self.tpt.slide)
 
     def nextPressed(self):
-        log.debug ("next pressed")
-        #if self.startButton.config()["state"][4] == "disabled":
         self.next()
-        self.updateGUI()
+        self.gotoSlideScale.set(self.tpt.slide)
 
     def prevPressed(self):
-        log.debug ("prev pressed")
-        if self.startButton.config()["state"][4] == "disabled":
-            self.toggleStandby()
-        else:
-            self.prev()
-            self.updateGUI()
-        
+        self.prev()
+        self.gotoSlideScale.set(self.tpt.slide)
+    
     def next(self):
-        self.tpt.next(pre_timeout = 1.5, post_timeout = 1.5)
+        self.tpt.next(pre_timeout = 0, post_timeout = 0)
         
     def prev(self):
         self.tpt.prev(pre_timeout = 1.5, post_timeout = 1.5)
@@ -285,12 +258,6 @@ class EktaproGUI(Tk):
     def enable_camera_toggle(self):
        #self.enable_camera.cycle = True if self.cycle.get() == 1 else False
         log.info("Camera enabled")
-
-    def toggleStandby(self):
-        if self.pauseButton.config()["text"][4] == "pause" \
-           and self.pauseButton.config()["state"][4] == "normal":
-            self.pauseTimer()
-        self.tpt.toggleStandby()
     
     def init_hardware (self):
         #gardasoft setup

@@ -34,6 +34,7 @@ class EktaproDevice:
 
     #Encapsulates the logic to control a Ektapro slide projector.
     def __init__(self):
+        self.isbusy = True
         self.maxBrightness = 100
         self.brightness = 0
         self.slide = 0
@@ -144,7 +145,7 @@ class EktaproDevice:
         self.comms(EktaproCommand(self.projektorID).paramRandomAccess(slide),pre_timeout = 0 , post_timeout = 10)
         self.slide = slide
 
-    def next(self, pre_timeout = 0 , post_timeout = 1.5):
+    def next(self, pre_timeout = 0 , post_timeout = 0):
         self.comms(EktaproCommand(self.projektorID).directSlideForward(),pre_timeout = pre_timeout , post_timeout = post_timeout)
         self.slide = self.slide + 1
         if self.slide > self.traySize:
@@ -165,6 +166,10 @@ class EktaproDevice:
                 log.error ("get_status invalid response" ) #could raise error here?
             else:    
                 self.slide = int(str(ord(s[2])))
+                
+    def get_status_busy(self):
+        #log.error ( str(self.isbusy) )
+        return self.isbusy
 
     def get_status(self, busy = False , debug = True):
         ret =  self.get_system_status(debug = debug)
@@ -249,6 +254,11 @@ class EktaproDevice:
             self.overrun_error = None
             self.buffer_overflow_error = None
             self.framing_error = None
+
+        if (self.projector_status == 1):
+            self.isbusy = True
+        else:
+            self.isbusy = False
         return self.projector_status
 
     def comms (self, command, read_bytes = 0, pre_timeout = 0, post_timeout = 0, debug = True):
