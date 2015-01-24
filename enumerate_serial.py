@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from glob import glob
-import os, sys , serial, logging, fcntl
+import sys  serial, logging
 from serial import *
 
 log = logging.getLogger(__name__)

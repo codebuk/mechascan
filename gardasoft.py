@@ -1,4 +1,6 @@
-import sys, serial, io, re, logging, fcntl
+import re
+import logging
+
 log = logging.getLogger(__name__)
 
 from enumerate_serial import * 
@@ -15,7 +17,7 @@ class GardasoftDevice:
         self.ver = ""
         self.connected = 0
         if (port is None):
-            ports = enumerate()
+            ports = enumerate(check_lock = True)
             for port in ports:  
                 if (self.open_port (port)):
                     return True
@@ -36,16 +38,16 @@ class GardasoftDevice:
                 except IOError:
                     log.info( "Can not immediately write-lock the file as it is locked: " + port)
                 else:
-                    log.info ("Port not locked. Check for device at: " + str(speeds) + " baud. Port: " + port)
-                    self.ser.flush() 
+                    log.info ("Check for device at: " + str(speeds) + " baud. Port: " + port)
+                    self.ser.flush()
                     self.ser.read(2000) #clear any junk
                     self.connected = 1
-                    if (self.clear_error()):
-                        self.ser.timeout = .1 #tried .01 but random errors 
-                        self.ver = self.version()
-                        return 1
-                    self.connected = 0
-                    self.ser.close()
+                if (self.clear_error()):
+                    self.ser.timeout = .1 #tried .01 but random errors
+                    self.ver = self.version()
+                    return 1
+                self.connected = 0
+                self.ser.close()
         except serial.SerialException:
             logging.error("Serial exception")
             pass

@@ -22,7 +22,6 @@
    One projector per serial port is supported.
    
 """
-import serial, time, logging, fcntl
 from enumerate_serial import *
 
 

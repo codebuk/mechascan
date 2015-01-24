@@ -6,19 +6,16 @@
    One projector per serial port is supported.
 """
 
-from tkinter.constants import SINGLE, END, DISABLED, HORIZONTAL, BOTTOM, W, X, LEFT, BOTH, RIGHT, N, TOP, NORMAL
+
 from tkinter import * 
-import tkinter.messagebox
-import tkinter.simpledialog
-#import tkinter.scolledtext
-import yaml, argparse, pprint, os, logging , fcntl, threading
+import yaml, pprint, os, logging   threading
 from enum import Enum
 from ektapro import *
 from cam import *
 from gardasoft import *
 
 logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s.%(msecs)d %(levelname)s %(message)s',
+                    format='%(asctime)s.%(msecs)d-%(name)s-%(levelname)s %(message)s',
                     datefmt='%H:%M:%S')
 logit = logging.getLogger('gphoto2')
 logit.setLevel(logging.INFO)

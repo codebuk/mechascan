@@ -73,7 +73,6 @@ class CameraDevice:
 
 if __name__ == "__main__":
 
-    import traceback, time
     logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s.%(msecs)d %(levelname)s %(module)s %(message)s',
                     datefmt='%H:%M:%S')
