@@ -1,0 +1,3 @@
+cam_device_path: str!! auto
+led_device_path: auto
+tpt_device_path: str!! "auto"
