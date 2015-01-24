@@ -106,7 +106,7 @@ class Main():
         except:
             warn ("LED device not connected")
         led.strobe(1,0,4000,4)
-        led.continuous (1, 100)
+        led.continuous (1, self.led_rest)
         
         #ektapro setup
         tpt.open(None)
