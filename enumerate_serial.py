@@ -1,7 +1,7 @@
+#!/usr/bin/env python3
 from glob import glob
-import os, logging, sys 
-import os.path
-from serial import Serial
+import os, sys , serial, logging, fcntl
+from serial import *
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +39,21 @@ def enumerate(check_lock = None):
                 link = os.readlink(os.path.join('/dev/serial/by-id', devs))
                 path = os.path.normpath(os.path.join('/dev/serial/by-id', link))
                 log.debug (path + " -- " + link + "--" + devs)
-                ports.extend([path])
+                if (check_lock):
+                    try:
+                        ser = serial.Serial(path, 9600, timeout=.1, writeTimeout=.01)
+                        log.debug ("Port opened: " + path)
+                        try:
+                            fcntl.flock(ser, fcntl.LOCK_EX | fcntl.LOCK_NB )
+                            ports.extend([path])
+                        except IOError:
+                            log.info( "Can not immediately write-lock the file as it is locked. Port is in use: " + path)
+                    except:
+                        raise
+                        log.info( "Can not open port: " + path)
+                else:
+                    ports.extend([path])
+
         for dev in glob('/dev/ttyS*'):
             try:
                 port = Serial(dev)
@@ -55,25 +69,12 @@ def enumerate(check_lock = None):
 
     else:
         raise EnvironmentError('Unsupported platform')
-
-    if (check_lock):
-        for port in ports
-            try:
-                self.ser = serial.serial_for_url(port, 9600, timeout=.1, writeTimeout=.01)
-            except
-                log.info("Port opened: " + port)
-                try:
-                    fcntl.flock(self.ser, fcntl.LOCK_EX | fcntl.LOCK_NB )
-                except IOError:
-                    log.info( "Can not immediately write-lock the file as it is locked: " + port)
-                else:
-                    log.info ("Port not locked. Check for device at: " + str(speeds) + " baud. Port: " + port)
-            
-
     return ports
 
 def script():
     for port in enumerate():
+        print(port)
+    for port in enumerate(check_lock=True):
         print(port)
 
 if __name__ == "__main__":
