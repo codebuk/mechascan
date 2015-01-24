@@ -27,22 +27,28 @@ class CameraDevice:
         
     def set_config(self, camera, context, name, value):
         # get configuration tree
+        log.debug('set config')
         config = gp.check_result(gp.gp_camera_get_config(camera, context))
         widget_child = gp.check_result (gp.gp_widget_get_child_by_name(config, name))
-        widget_type = gp.check_result(gp.gp_widget_get_type(widget_child))
-        widget_value = gp.check_result(gp.gp_widget_get_value(widget_child))
+        #widget_type = gp.check_result(gp.gp_widget_get_type(widget_child))
+        #widget_value = gp.check_result(gp.gp_widget_get_value(widget_child))
         gp.check_result(gp.gp_widget_set_value(widget_child, value))
         gp.check_result(gp.gp_camera_set_config(camera, config, context))
-        log.info ( name + " type : " + str(widget_type) + " old value : " + str(widget_value) + " new value : " + value)
+        #log.info ( name + " type : " + str(widget_type) + " old value : " + str(widget_value) + " new value : " + value)
 
     def open(self):
-        gp.check_result(gp.use_python_logging())
+        log.debug('open')
+        #gp.check_result(gp.use_python_logging())
+        log.debug('allocate memory')
+        gp.gp_camera_new()
         self.camera = gp.check_result(gp.gp_camera_new())
+
         self.context = gp.gp_context_new()
         gp.check_result(gp.gp_camera_init(self.camera, self.context))
-        self.set_config ( self.camera, self.context, 'capturetarget', 'sdram' )
+        #self.set_config ( self.camera, self.context, 'capturetarget', 'sdram' )
 
     def capture(self):
+        log.debug('capture')
         error, self.path = gp.gp_camera_capture(self.camera, gp.GP_CAPTURE_IMAGE , self.context)
         if (error):
             log.error ("Image capture failed " + str(error))
@@ -50,7 +56,8 @@ class CameraDevice:
         log.info ("Image captured to: " + self.path.folder + self.path.name )
         return 1            
 
-    def save (self,name):    
+    def save (self,name):
+        log.debug('save')
         camera_file = gp.check_result(gp.gp_camera_file_get(
                 self.camera, self.path.folder, self.path.name, gp.GP_FILE_TYPE_NORMAL, self.context))
         gp.check_result(gp.gp_file_save(camera_file, name))
@@ -63,3 +70,22 @@ class CameraDevice:
         except:
             log.info ("Error closing camera - not opened?") 
         return 0
+
+if __name__ == "__main__":
+
+    import traceback, time
+    logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s.%(msecs)d %(levelname)s %(module)s %(message)s',
+                    datefmt='%H:%M:%S')
+    logit = logging.getLogger('gphoto2')
+    logit.setLevel(logging.INFO)
+
+    while 1:
+        t = CameraDevice()
+        t.open()
+        ok = t.capture()
+        f = "test.jpg"
+        log.debug ("Capture complete - Now save" + f )
+        t.save(f)
+        t.close()
+   

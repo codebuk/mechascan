@@ -1,25 +1,21 @@
-#!/usr/bin/env python
+#python
 """
    MechaScan-Slide
    
-   Copyright (C) 2014,2015 Breager Pty. Ltd.
+   Copyright (C) 2014,2015 Breager 
    One projector per serial port is supported.
 """
 
-
-from Tkconstants import SINGLE, END, DISABLED, HORIZONTAL, BOTTOM, W, X, LEFT, \
-    BOTH, RIGHT, N, TOP, NORMAL
-from Tkinter import Tk, Frame, Listbox, Button, Label, Entry, IntVar, \
-    Checkbutton, Scale, Menu
+from tkinter.constants import SINGLE, END, DISABLED, HORIZONTAL, BOTTOM, W, X, LEFT, BOTH, RIGHT, N, TOP, NORMAL
+from tkinter import * 
+import tkinter.messagebox
+import tkinter.simpledialog
+#import tkinter.scolledtext
+import yaml, argparse, pprint, os, logging , fcntl, threading
 from enum import Enum
-import tkMessageBox
-import tkSimpleDialog
-import os, logging , fcntl
-
-# custom modules
 from ektapro import *
-from gardasoft import *
 from cam import *
+from gardasoft import *
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s.%(msecs)d %(levelname)s %(message)s',
@@ -27,260 +23,408 @@ logging.basicConfig(level=logging.DEBUG,
 logit = logging.getLogger('gphoto2')
 logit.setLevel(logging.INFO)
 
-scan_state = Enum('scan_state', 'scanning stopped')
+class scan_state (Enum):
+    stopped = 1
+    scanning = 2
 
-class EktaproGUI(Tk):
-    #Constructs the main program window and interfaces with the EktaproDevice
+class Main():
     def __init__(self):
+        self.capture_delay_min = 0
+        self.capture_delay_max = 10000
+        self.capture_delay = 100
+        self.slot_min = 0
+        self.slot_max = 140
+        self.slot_start = 1
+        self.slot_end = 80
         self.scan_state = scan_state.stopped
-        self.tpt = EktaproDevice()
-        self.led = GardasoftDevice()
+        self.led_flash = 2000
+        self.led_rest = 0
         self.cam = CameraDevice()
-        Tk.__init__(self)
-        self.protocol('WM_DELETE_WINDOW', self.onQuit)
-        self.wm_title("Mechascan Slide")
-        self.bind("<Prior>", self.prevPressed)
-        self.bind("<Next>", self.nextPressed)
-
-        self.statusPanel = Frame(self)
-        self.controlPanel = Frame(self)
-        self.manualPanel = Frame(self)
-        #status panel
-        self.statusLabel = Label(self.statusPanel, text="Status")
-        self.statusLabel.pack(side=RIGHT, anchor=N, padx=4, pady=4)
-        #
-        self.busyLabel = Label(self.statusPanel, text="Busy")
-        self.busyLabel.pack(side=RIGHT, anchor=N, padx=4, pady=4)
-        #control panel
-        self.connectButton = Button(self.controlPanel, text="Connect Transport", command=self.connectButtonPressed)
-        self.nextButton = Button(self.controlPanel, text=" > ", command=self.nextPressed)
-        self.prevButton = Button(self.controlPanel, text=" < ", command=self.prevPressed)
-        self.startButton = Button(self.controlPanel, text="Start Scanning", command=self.start_scan)
-        self.stopButton = Button(self.controlPanel, text="Stop Scanning", command=self.stop_scan)
-        self.homeButton = Button(self.controlPanel, text="Home", command=self.home_pressed)
-
-        self.timerLabel = Label(self.controlPanel, text="Stable Time")
-        self.timerInput = Entry(self.controlPanel, width=3)
-        self.timerInput.insert(0, "500")
-        self.timerInput.bind("<KeyPress-Return>", self.inputValuesChanged)
-        #self.timerInput.bind("<ButtonRelease>", self.updateGUI)
-        
-        self.start_slot_label = Label(self.controlPanel, text="Slot Start")
-        self.start_slot_input = Entry(self.controlPanel, width=3)
-        self.start_slot_input.insert(0, "1")
-        self.start_slot_input.bind("<KeyPress-Return>", self.inputValuesChanged)
-        #self.start_slot_input.bind("<ButtonRelease>", self.updateGUI)
-
-        self.end_slot_label = Label(self.controlPanel, text="Slot End")
-        self.end_slot_input = Entry(self.controlPanel, width=3)
-        self.end_slot_input.insert(0, "80")
-        self.end_slot_input.bind("<KeyPress-Return>", self.inputValuesChanged)
-        #self.end_slot_input.bind("<ButtonRelease>", self.updateGUI)
-        
-        self.syncButton = Button(self.controlPanel, text="Get Position", command=self.sync)
-        self.statusButton = Button(self.controlPanel,text="Status", command=self.status)
-        self.enable_camera = IntVar()
-        self.enable_camera = Checkbutton(self.controlPanel, text="Capture Images", variable=self.enable_camera, command=self.enable_camera_toggle)
-        self.gotoSlideScale = Scale(self.manualPanel, from_=0, to=self.tpt.maxDisplayTray, label="Select slide")
-        self.gotoSlideScale.set(1)
-        self.gotoSlideScale.bind("<ButtonRelease>", self.gotoSlideChanged)
-        self.gotoSlideScale.config(orient=HORIZONTAL)
-        self.gotoSlideScale.config(length=400)
-        self.gui ("Disable")
-        #setup panels - order is important....
-        self.manualPanel.pack(side=TOP, expand=1, fill=BOTH)
-        self.statusPanel.pack(side=BOTTOM, anchor=W, fill=X)
-        self.controlPanel.pack(side=RIGHT, anchor=W, fill=X)
-        #layout panels
-        self.connectButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
-        self.prevButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
-        self.homeButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
-        self.nextButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
-        self.startButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
-                       
-        self.stopButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
-        self.syncButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
-        self.statusButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
-
-        self.end_slot_input.pack(side=RIGHT, anchor=N, padx=4, pady=4)
-        self.end_slot_label.pack(side=RIGHT, anchor=N, padx=4, pady=4)
-
-        self.start_slot_input.pack(side=RIGHT, anchor=N, padx=4, pady=4)
-        self.start_slot_label.pack(side=RIGHT, anchor=N, padx=4, pady=4)
-               
-        self.timerInput.pack(side=RIGHT, anchor=N, padx=4, pady=4)
-        self.timerLabel.pack(side=RIGHT, anchor=N, padx=4, pady=4)
-        
-        self.enable_camera.pack(side=RIGHT, anchor=N, padx=4, pady=4)
-                
-        self.gotoSlideScale.pack(side=TOP, anchor=W, expand=1, fill=X)
-        
-        self.menubar = Menu(self)
-        self.toolsmenu = Menu(self.menubar)
-        self.helpmenu = Menu(self.menubar)
-        self.filemenu = Menu(self.menubar)
-
-        self.helpmenu.add_command(label="About MechaScan", command=lambda: tkMessageBox.showinfo(
-                                      "About MechaScan","MechaScan 0.1 (C)opyright Breager 2014"))
-        self.filemenu.add_command(label="Exit", command=self.onQuit)
-        self.menubar.add_cascade(label="File", menu=self.filemenu)
-        self.menubar.add_cascade(label="Help", menu=self.helpmenu)
-        self.configure(menu=self.menubar)
-        
+        self.led = GardasoftDevice()
+        self.tpt = EktaproDevice()
+        self.create_gui()
         self.gui ("Enable")
-        self.init_hardware()
-        self.update_clock()
-
-    def update_clock(self):
-        now = time.strftime("%H:%M:%S")
-        self.statusLabel.configure(text=now)
-        if (self.tpt.get_status_busy()):
-            self.busyLabel.configure(text= "Transport Busy")
-        else:
-            self.busyLabel.configure(text= "Transport Resting")
-        self.update()
-        self.after(100, self.update_clock)
-        
-
-    def connectButtonPressed(self):
-        self.init_hardware()
-        self.gui ("Enable")
-
-    def inputValuesChanged(self, event):
-        auto_delay = int(self.timerInput.get())
-        if auto_delay in range(0, 6000):
-            self.auto_delay = auto_delay
-            log.debug ("Valid delay: " + unicode (auto_delay))
-        else:
-            log.error ("Invalid delay: " + unicode (auto_delay))
-
-        start_slot = int(self.start_slot_input.get())
-        if start_slot in range(1, 140):
-            self.start_slot = start_slot
-            log.debug ("Start slot: " + unicode (start_slot))
-        else:
-            log.error ("Start slot: " + unicode (start_slot))
-
-        end_slot = int(self.end_slot_input.get())
-        if end_slot in range(1, 140):
-            self.end_slot = end_slot
-            log.debug ("End slot: " + unicode (end_slot))
-        else:
-            log.error ("End slot: " + unicode (end_slot))
-
-    def start_scan(self):
-        self.stopButton.config(state=NORMAL)
-        self.startButton.config(state=DISABLED)
-        self.scan()
-        
-    def stop_scan(self):
-        self.scan_state = scan_state.stopped
-        self.stopButton.config(state=DISABLED)
-        self.startButton.config(state=NORMAL)
-
+        self.update_clock()         #this creates tk callback and time to update gui
+        thread = threading.Thread(target=self.init_hardware, args = (self.led, self.tpt, self.cam ))
+        thread.daemon = True        # thread dies when main thread (only non-daemon thread) exits.
+        thread.start()
+        self.t.mainloop()
+    
     def scan(self):
-        self.stopButton.config(state=NORMAL)
-        self.startButton.config(state=DISABLED)
+        self.t.stopButton.config(state=NORMAL)
+        self.t.startButton.config(state=DISABLED)
+        if not self.enable_led.get(): self.led.continuous (1,0)
         self.scan_state = scan_state.scanning 
         ok = False
-        for slide in range(1, 80):
-            log.debug("Scanning count: " + str (slide)) 
-            if (self.scan_state == scan_state.stopped):
-                return
-            while (self.tpt.get_status(busy = True, debug = False)):
-                self.gotoSlideScale.set(self.tpt.slide)
-                self.update()
-            self.led.continuous (1, 2000)
-            try:
-                self.cam.open()
-            except:
-                pass
-            try:
-                ok = self.cam.capture()
-            except:
-                pass
-            self.led.continuous (1, 200)
-            if (ok):
-                f = "/home/dan/pics/" + str(slide) + ".jpg"
+        if self.enable_tpt.get(): self.tpt.select(self.slot_start)
+        for slide in range(self.slot_start, self.slot_end + 1):
+            ts = time.time()
+            log.debug("Scanning count: " + str (slide))
+            self.update_gui()
+            if (self.scan_state == scan_state.stopped): break
+            if self.enable_tpt.get():  
+                while (self.tpt.get_status(busy = True, debug = False)):
+                    self.update_gui()
+                if (self.capture_delay > 0 ):
+                    tcd = time.time()
+                    while 1:
+                        self.update_gui()
+                        if (time.time () - tcd > (self.capture_delay /1000)):
+                            break
+                    log.debug ( "Delay for: " + str(time.time () - tcd))            
+            if self.enable_led.get(): self.led.continuous (1, self.led_flash)
+            self.update_gui()    
+            if (self.enable_cam.get() == True):
+                try:
+                    self.cam.open()
+                except:
+                    pass
+                try:
+                    ok = self.cam.capture()
+                except:
+                    pass
+            self.update_gui()    
+            if self.enable_led.get(): self.led.continuous (1, self.led_rest)
+            self.update_gui()
+            if self.enable_tpt.get():  
+                self.tpt.next(post_timeout = 0)
+                self.update_gui()
+            if (ok and self.enable_cam.get()):
+                f = "/home/dan/Documents/pics/" + str(slide) + ".jpg"
                 log.debug ("Capture complete - Now save" + f )
                 self.cam.save(f)
                 self.cam.close()
-            self.tpt.next(post_timeout = 0)  #do the move - do not wait after starting move
+            log.error("Scan time: " + str(time.time () - ts) + "for slot: " + str (slide))
+        self.stop_scan()
+
+    
+    def init_hardware (self, led, tpt, cam):
+        #gardasoft setup
+        led.open(None)
+        try:
+            led.version()
+        except:
+            warn ("LED device not connected")
+        led.strobe(1,0,4000,4)
+        led.continuous (1, 100)
+        
+        #ektapro setup
+        tpt.open(None)
+        tpt.reset()
+
+
+    def update_clock(self):
+        now = time.strftime("%H:%M:%S")
+        self.t.time_label.configure(text=now)
+        if (self.tpt.get_status_busy()):
+            self.t.busy_label.configure(text= "Transport Busy")
+        else:
+            self.t.busy_label.configure(text= "Transport Rest")
+        self.t.update()
+        self.t.after(100, self.update_clock)
+        
+    def connect_press(self):
+        init_hardware()
+        self.gui ("Enable")
+
+    def inputs_change(self, event=None):
+        try:
+            log.error ("Event " + event.type )
+        except:
+            pass
+        if self.scan_state == scan_state.stopped:
+            try:
+                capture_delay = int(self.t.capture_delay_input.get())
+            except:
+                capture_delay = -1
+            if capture_delay in range(self.capture_delay_min, self.capture_delay_max):
+                self.capture_delay = capture_delay
+                log.debug ("Valid delay: " + str (capture_delay))
+            else:
+                log.error ("Invalid delay: " + str (capture_delay))
+                self.capture_delay = self.capture_delay_min
+                self.t.capture_delay_input.delete(0, END)
+                self.t.capture_delay_input.insert(0, self.capture_delay)
+
+            log.debug ("Start slot: " + str (self.t.slot_start_input.get()))
+            try:
+                slot_start = int(self.t.slot_start_input.get())
+            except:
+                slot_start = -1
+            if slot_start in range(1, self.slot_max):
+                self.slot_start = slot_start
+                log.debug ("Valid Start slot: " + str (self.slot_start))
+
+            else:
+                self.slot_start = self.slot_min
+                log.error ("Start slot: " + str (self.slot_start))
+                self.t.slot_start_input.delete(0, END)
+                self.t.slot_start_input.insert(0, self.slot_start)
+
+            try:
+                slot_end = int(self.t.slot_end_input.get())
+            except:
+                slot_end = -1
+            if slot_end in range(1, 140):
+                self.slot_end = slot_end
+                log.debug ("Valid End slot: " + str (self.slot_end))
+            else:
+                self.slot_end = self.slot_max
+                log.error ("End slot: " + str (self.slot_end))
+                self.t.slot_end_input.delete(0, END)
+                self.t.slot_end_input.insert(0, self.slot_end)
+
+    def start_scan_press(self):
+        self.t.stopButton.config(state=NORMAL)
+        self.t.startButton.config(state=DISABLED)
+        self.scan()
+        
+    def stop_scan_press(self):
+        self.stop_scan()
+
+    def stop_scan (self):
+        self.scan_state = scan_state.stopped
+        self.t.stopButton.config(state=DISABLED)
+        self.t.startButton.config(state=NORMAL)
 
     def gui (self, state):
         if (state == "Enable"):
-            self.gotoSlideScale.config(state=NORMAL)
-            self.nextButton.config(state=NORMAL)
-            self.prevButton.config(state=NORMAL)
-            self.startButton.config(state=NORMAL)
-            self.timerInput.config(state=NORMAL)
-            self.syncButton.config(state=NORMAL)
-            self.statusButton.config(state=NORMAL)
+            self.t.gotoSlideScale.config(state=NORMAL)
+            self.t.nextButton.config(state=NORMAL)
+            self.t.prevButton.config(state=NORMAL)
+            self.t.startButton.config(state=NORMAL)
+            self.t.capture_delay_input.config(state=NORMAL)
+            self.t.syncButton.config(state=NORMAL)
+            self.t.statusButton.config(state=NORMAL)
+            
         if (state == "Disable"):
-            self.gotoSlideScale.config(state=DISABLED)
-            self.nextButton.config(state=DISABLED)
-            self.prevButton.config(state=DISABLED)
-            self.startButton.config(state=DISABLED)
-            self.stopButton.config(state=DISABLED)
-            self.timerInput.config(state=DISABLED)
-            self.syncButton.config(state=DISABLED)
-            self.statusButton.config(state=DISABLED)
+            self.t.gotoSlideScale.config(state=DISABLED)
+            self.t.nextButton.config(state=DISABLED)
+            self.t.prevButton.config(state=DISABLED)
+            self.t.startButton.config(state=DISABLED)
+            self.t.stopButton.config(state=DISABLED)
+            self.t.capture_delay_input.config(state=DISABLED)
+            self.t.syncButton.config(state=DISABLED)
+            self.t.statusButton.config(state=DISABLED)
 
-    def status (self):
+    def enable_camera_press(self):
+        pass
+
+    def status_press (self):
         self.tpt.get_status()
-    
-    def sync(self):
+
+    def sync_press(self):
         self.tpt.sync()
 
-    def home_pressed(self):
+    def home_press(self):
         self.tpt.select(0)
-        self.gotoSlideScale.set(self.tpt.slide)
+        self.t.gotoSlideScale.set(self.tpt.slide)
         
     def gotoSlideChanged(self, event):
-        newSlide = self.gotoSlideScale.get()
+        newSlide = self.t.gotoSlideScale.get()
         self.tpt.select(newSlide)
-        self.gotoSlideScale.set(self.tpt.slide)
+        self.t.gotoSlideScale.set(self.tpt.slide)
 
-    def nextPressed(self):
-        self.next()
-        self.gotoSlideScale.set(self.tpt.slide)
+    def next_press(self):
+        next(self)
+        self.t.gotoSlideScale.set(self.tpt.slide)
 
-    def prevPressed(self):
+    def prev_press(self):
         self.prev()
-        self.gotoSlideScale.set(self.tpt.slide)
-    
-    def next(self):
+        self.t.gotoSlideScale.set(self.tpt.slide)
+
+    def __next__(self):
         self.tpt.next(pre_timeout = 0, post_timeout = 0)
         
     def prev(self):
         self.tpt.prev(pre_timeout = 1.5, post_timeout = 1.5)
-
-    def enable_camera_toggle(self):
-       #self.enable_camera.cycle = True if self.cycle.get() == 1 else False
-        log.info("Camera enabled")
-    
-    def init_hardware (self):
-        #gardasoft setup
-        self.led.open(None)
-        try:
-            self.led.version()
-        except:
-            log.warn ("LED device not connected")
-        self.led.strobe(1,0,4000,4)
-        self.led.continuous (1, 100)
-        
-        #ektapro setup
-        self.tpt.open(None)
-        self.tpt.reset()
        
-        #camera setup #none required
+    def update_gui(self):
+        #log.debug("Update GUI")
+        self.t.gotoSlideScale.set(self.tpt.slide)
+        #self.inputs_change()
+        self.t.update()
 
     def onQuit(self):
-        self.tpt.close()
-        self.led.close()
-        self.cam.close()
-        self.destroy()
+        try:
+            led.close()
+        except:
+            pass
+        try:
+            self.cam.close()
+        except:
+            pass
+        try:
+            self.tpt.reset()
+            self.tpt.close()
+        except:
+            pass
+        #self.t.destroy()
+
+##    def create_gui_image_viewer(self):
+##        self.tiv = Toplevel()
+##        self.tiv.geometry("1920x1080+130+0")
+##        self.tiv.protocol('WM_DELETE_WINDOW', self.onQuit)
+##        self.tiv.wm_title("Image View")
+##        canvas = Canvas(self.tiv, width=400, height=300,  background=BLACK )
+##        canvas.pack()
+##
+##        # Load the image file
+##        im = Image.open("./images/ektachrome-kodak.jpg")
+##        # Put the image into a canvas compatible class, and stick in an
+##        # arbitrary variable to the garbage collector doesn't destroy it
+##        canvas.image = ImageTk.PhotoImage(im)
+##        # Add the image to the canvas, 
+##        canvas.create_image(0, 0, image=canvas.image)
+##      
+##        self.t.bind("<Prior>", self.prev_press)
+##        self.t.bind("<Next>", self.next_press)
+
+        
+    def create_gui(self):
+        self.t = Tk()
+        self.t.geometry("1920x1080+130+0")
+        self.t.protocol('WM_DELETE_WINDOW', self.onQuit)
+        self.t.wm_title("Mechascan Slide")
+
+        self.t.bind("<Prior>", self.prev_press)
+        self.t.bind("<Next>", self.next_press)
+
+        self.t.status_panel = Frame(self.t, borderwidth=2,  relief="sunken")
+        self.t.settings_panel = Frame(self.t)
+        self.t.control_panel = Frame(self.t)
+
+        self.t.manual_panel = Frame(self.t)
+        #self.t.log_panel = Frame(self.t)
+              
+        self.t.manual_panel.grid (row=0, column=0, sticky='ew' )
+        self.t.status_panel.grid (row=4, column=0, sticky='ew' )
+        self.t.settings_panel.grid (row=1, column=0, sticky='ew' )
+        self.t.control_panel.grid (row=2, column=0, sticky='ew' )
+        #self.t.log_panel.grid (row=3, column=0, sticky='nsew' )
+
+        self.t.grid_rowconfigure(3, weight=1)
+        self.t.grid_columnconfigure(3, weight=1)
+
+        #self.t.txt = ScrolledText(self.t.log_panel, undo=True)
+        #self.t.txt['font'] = ('consolas', '12')
+        #self.t.txt.pack(expand=True, fill='both')
+
+        self.t.time_label = Label(self.t.status_panel, text="Busy", borderwidth=2,  relief="sunken")
+        self.t.time_label.pack(side=RIGHT, anchor=N, padx=1, pady=1)
+        self.t.statusLabel = Label(self.t.status_panel, text="Status", borderwidth=2,  relief="sunken")
+        self.t.statusLabel.pack(side=RIGHT, anchor=N, padx=1, pady=1)
+        self.t.busy_label = Label(self.t.status_panel, text="Busy", borderwidth=2,  relief="sunken")
+        self.t.busy_label.pack(side=RIGHT, anchor=N, padx=1, pady=1)
+        self.t.led_type_label = Label(self.t.status_panel, text="Led Type", borderwidth=2,  relief="sunken")
+        self.t.led_type_label.pack(side=RIGHT, anchor=N, padx=1, pady=1)
+        self.t.led_port_label = Label(self.t.status_panel, text="Led Port", borderwidth=2,  relief="sunken")
+        self.t.led_port_label.pack(side=RIGHT, anchor=N, padx=1, pady=1)
+        self.t.led_value_label = Label(self.t.status_panel, text="Led Value", borderwidth=2,  relief="sunken")
+        self.t.led_value_label.pack(side=RIGHT, anchor=N, padx=1, pady=1)
+        self.t.cam_type_label = Label(self.t.status_panel, text="Cam Type", borderwidth=2,  relief="sunken")
+        self.t.cam_type_label.pack(side=RIGHT, anchor=N, padx=1, pady=1)
+      
+        self.t.connectButton = Button(self.t.control_panel, text="Connect Transport", command=self.connect_press)
+        self.t.nextButton = Button(self.t.control_panel, text=" > ", command=self.next_press)
+        self.t.prevButton = Button(self.t.control_panel, text=" < ", command=self.prev_press)
+        self.t.startButton = Button(self.t.control_panel, text="Start Scanning", command=self.start_scan_press)
+        self.t.stopButton = Button(self.t.control_panel, text="Stop Scanning", command=self.stop_scan_press)
+        self.t.homeButton = Button(self.t.control_panel, text="Home", command=self.home_press)
+        self.t.syncButton = Button(self.t.control_panel, text="Get Position", command=self.sync_press)
+        self.t.statusButton = Button(self.t.control_panel,text="Status", command=self.status_press)
+
+        self.t.capture_delay_label = Label(self.t.settings_panel, text="Pre capture delay")
+        self.t.capture_delay_input = Entry(self.t.settings_panel, width=3)
+        self.t.capture_delay_input.insert(0, self.capture_delay)
+        self.t.capture_delay_input.bind("<KeyPress-Return>", self.inputs_change)
+        self.t.capture_delay_input.bind("<Leave>", self.inputs_change)
+        self.t.capture_delay_input.bind("<ButtonRelease>", self.inputs_change)
+        
+        self.t.slot_start_label = Label(self.t.settings_panel, text="Starting at slot")
+        self.t.slot_start_input = Entry(self.t.settings_panel, width=3)
+        self.t.slot_start_input.insert(0, "1")
+        self.t.slot_start_input.bind("<KeyPress-Return>", self.inputs_change)
+        self.t.slot_start_input.bind("<Leave>", self.inputs_change)
+        self.t.slot_start_input.bind("<ButtonRelease>", self.inputs_change)
+
+        self.t.slot_end_label = Label(self.t.settings_panel, text="Ending at slot")
+        self.t.slot_end_input = Entry(self.t.settings_panel, width=3)
+        self.t.slot_end_input.insert(0, "80")
+        self.t.slot_end_input.bind("<KeyPress-Return>", self.inputs_change)
+        self.t.slot_end_input.bind("<Leave>", self.inputs_change)
+        self.t.slot_end_input.bind("<ButtonRelease>", self.inputs_change)
+
+        self.enable_cam = BooleanVar()
+        self.t.enable_cam = Checkbutton(self.t.settings_panel, 
+                                         text="Use camera", 
+                                         variable=self.enable_cam)
+        self.t.enable_cam.select()
+                
+        self.auto_home = BooleanVar()
+        self.t.auto_home = Checkbutton(self.t.settings_panel,
+                                       text="Auto return to 0 slot",
+                                       variable=self.auto_home)
+        self.t.auto_home.select()
+
+        self.enable_led = BooleanVar()
+        self.t.enable_led = Checkbutton(self.t.settings_panel,
+                                       text="Use lamp",
+                                       variable=self.enable_led)
+        self.t.enable_led.select()
+
+        self.enable_tpt = BooleanVar()
+        self.t.enable_tpt = Checkbutton(self.t.settings_panel,
+                                       text="Use transport",
+                                       variable=self.enable_tpt)
+        self.t.enable_tpt.select()
+               
+        self.t.gotoSlideScale = Scale(self.t.manual_panel, from_=0, to=self.slot_max, label="Select slide")
+        self.t.gotoSlideScale.bind("<ButtonRelease>", self.gotoSlideChanged)
+        self.t.gotoSlideScale.config(orient=HORIZONTAL)
+        self.t.gotoSlideScale.config(length=400)
+
+
+        #layout panels
+        self.t.connectButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
+        self.t.prevButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
+        self.t.homeButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
+        self.t.nextButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
+        self.t.startButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
+                       
+        self.t.stopButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
+        self.t.syncButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
+        self.t.statusButton.pack(side=LEFT, anchor=N, padx=4, pady=4)
+
+        #settings
+        self.t.capture_delay_input.pack(side=RIGHT, anchor=N, padx=1, pady=4)
+        self.t.capture_delay_label.pack(side=RIGHT, anchor=N, padx=4, pady=4)
+
+        self.t.slot_end_input.pack(side=RIGHT, anchor=N, padx=1, pady=4)
+        self.t.slot_end_label.pack(side=RIGHT, anchor=N, padx=1, pady=4)
+        self.t.slot_start_input.pack(side=RIGHT, anchor=N, padx=1, pady=4)
+        self.t.slot_start_label.pack(side=RIGHT, anchor=N, padx=1, pady=4)
+        
+        self.t.enable_cam.pack(side=RIGHT, anchor=N, padx=4, pady=3)
+        self.t.enable_led.pack(side=RIGHT, anchor=N, padx=4, pady=3)
+        self.t.enable_tpt.pack(side=RIGHT, anchor=N, padx=4, pady=3)
+        self.t.auto_home.pack(side=RIGHT, anchor=N, padx=4, pady=3)
+                
+        self.t.gotoSlideScale.pack(side=TOP, anchor=W, expand=1, fill=X)
+        
+        self.t.menubar = Menu(self.t)
+        self.t.toolsmenu = Menu(self.t.menubar)
+        self.t.helpmenu = Menu(self.t.menubar)
+        self.t.filemenu = Menu(self.t.menubar)
+
+        self.t.helpmenu.add_command(label="About MechaScan", command=lambda: tkMessageBox.showinfo(
+                                      "About MechaScan","MechaScan 0.1 (C)opyright Breager 2014"))
+        self.t.filemenu.add_command(label="Exit", command=self.onQuit)
+        self.t.menubar.add_cascade(label="File", menu=self.t.filemenu)
+        self.t.menubar.add_cascade(label="Help", menu=self.t.helpmenu)
+        self.t.configure(menu=self.t.menubar)
 
 if __name__ == '__main__':
-    mainWindow = EktaproGUI()
-    mainWindow.mainloop()
+    Main()
+
+

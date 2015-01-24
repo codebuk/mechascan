@@ -23,10 +23,8 @@
    
 """
 import serial, pprint, time, logging, fcntl
-try:
-    from serial.tools.list_ports import comports
-except ImportError:
-    comports = None
+from enumerate_serial import *
+
 
 log = logging.getLogger(__name__)
 
@@ -34,20 +32,23 @@ class EktaproDevice:
 
     #Encapsulates the logic to control a Ektapro slide projector.
     def __init__(self):
-        self.isbusy = True
-        self.maxBrightness = 100
+        self.is_busy = True
+        self.max_brightness = 100
         self.brightness = 0
         self.slide = 0
-        self.maxDisplayTray = 140
-        self.projektorID = 0
+        self.max_display_tray = 140
         self.info = None
-        self.projektorID = 0
-        self.projektorVersion = ""
-        self.projektorType = 0
-        self.serialDevice = None
+        self.id = 0
+        self.version = ""
+        self.type = 0
+        self.serial_device = None
         self.connected = 0
+        #initalise internal vars
+        self.get_system_return()
         #self.pre_timeout = 2
         #self.post_timeout = 2
+        self.tray_size = 0
+        self.slide = 0 
 
     def open_port(self, port):
         self.close()
@@ -63,9 +64,9 @@ class EktaproDevice:
                 self.info = s.read(5)
                 info = self.info
                 if info == None or len(info) == 0 \
-                    or not (ord(info[0]) % 8 == 6) \
-                    or not (ord(info[1]) / 16 == 13) \
-                    or not (ord(info[1]) % 2 == 0):
+                    or not (info[0] % 8 == 6) \
+                    or not (info[1] / 16 == 13) \
+                    or not (info[1] % 2 == 0):
                     logging.info("Not a Ektapro device")
                 else:
                     self.serialDevice = s
@@ -79,7 +80,8 @@ class EktaproDevice:
      
     def open(self, port):
         if (port is None):
-            for port, desc, hwid in sorted(comports(), reverse=True):  #usb is first!
+            ports = enumerate()
+            for port in ports:  
                 if (self.open_port (port)):
                     break
         else:
@@ -121,44 +123,46 @@ class EktaproDevice:
             10: "9010 / 9020"
         }
         return "Kodak Ektapro model: " \
-               + modelStrings.get(self.projektorType, "Unknown") \
-               + " Id: " + str(self.projektorID) \
-               + " Version: " + str(self.projektorVersion)
+               + modelStrings.get(self.type, "Unknown") \
+               + " Id: " + str(self.id) \
+               + " Version: " + str(self.version)
+    def get_version(self):
+        return self.version
 
     def setStandby(self, on):
-        self.comms(EktaproCommand(self.projektorID).setStandby(on))
+        self.comms(EktaproCommand(self.id).setStandby(on))
 
     def setAutoFocus(self, on):
-        self.comms(EktaproCommand(self.projektorID).setAutoFocus(on))
+        self.comms(EktaproCommand(self.id).setAutoFocus(on))
  
     def setBrightness(self, brightness):
-        self.comms(EktaproCommand(self.projektorID).paramSetBrightness(brightness * 10))
+        self.comms(EktaproCommand(self.id).paramSetBrightness(brightness * 10))
         self.brightness = brightness 
 
     def reset(self):
-        self.comms( EktaproCommand(self.projektorID).directResetSystem())
+        self.comms( EktaproCommand(self.id).directResetSystem())
 
     def clear_error_flag(self):
-        self.comms( EktaproCommand(self.projektorID).directClearErrorFlag())
+        self.comms( EktaproCommand(self.id).directClearErrorFlag())
     
     def select(self, slide):
-        self.comms(EktaproCommand(self.projektorID).paramRandomAccess(slide),pre_timeout = 0 , post_timeout = 10)
+        self.comms(EktaproCommand(self.id).paramRandomAccess(slide),pre_timeout = 0 , post_timeout = 10)
         self.slide = slide
 
     def next(self, pre_timeout = 0 , post_timeout = 0):
-        self.comms(EktaproCommand(self.projektorID).directSlideForward(),pre_timeout = pre_timeout , post_timeout = post_timeout)
+        self.comms(EktaproCommand(self.id).directSlideForward(),pre_timeout = pre_timeout , post_timeout = post_timeout)
         self.slide = self.slide + 1
-        if self.slide > self.traySize:
+        if self.slide > self.tray_size:
             self.slide = 0 #? 1
  
     def prev(self ,pre_timeout = 0, post_timeout = 1.5):
-        self.comms(EktaproCommand(self.projektorID).directSlideBackward(),pre_timeout = pre_timeout , post_timeout = post_timeout)
+        self.comms(EktaproCommand(self.id).directSlideBackward(),pre_timeout = pre_timeout , post_timeout = post_timeout)
         self.slide = self.slide - 1
         if self.slide == -1:
-            self.slide = self.traySize
+            self.slide = self.tray_size
 
     def sync(self):
-        s = self.comms(EktaproCommand(self.projektorID).statusGetTrayPosition(), read_bytes = 3)
+        s = self.comms(EktaproCommand(self.id).statusGetTrayPosition(), read_bytes = 3)
         if (self.connected):
             if (len (s) != 3) \
                 or not (ord(s[0]) % 8 == 6) \
@@ -168,8 +172,8 @@ class EktaproDevice:
                 self.slide = int(str(ord(s[2])))
                 
     def get_status_busy(self):
-        #log.error ( str(self.isbusy) )
-        return self.isbusy
+        #log.error ( str(self.is_busy) )
+        return self.is_busy
 
     def get_status(self, busy = False , debug = True):
         ret =  self.get_system_status(debug = debug)
@@ -192,61 +196,60 @@ class EktaproDevice:
                 log.debug (self.get_details())
 
     def get_system_return (self, debug = True):
-        self.info = self.comms(EktaproCommand(self.projektorID).statusSystemReturn(), read_bytes = 5, debug = debug)
+        self.info = self.comms(EktaproCommand(self.id).statusSystemReturn(), read_bytes = 5, debug = debug)
         if (self.connected and (len (self.info) == 5) ):
             info = self.info
-            #self.projektorID = ord(info[0]) / 16 - do not change based on returned values
-            self.projektorType = ord(info[2]) / 16
-            self.projektorVersion = str(ord(info[2]) % 16) + "." \
-                + str(ord(info[3]) / 16) \
-                + str(ord(info[3]) % 16)
-            self.powerFrequency = (ord(info[4]) & 128) / 128
-            self.autoFocus = (ord(info[4]) & 64) / 64
-            self.autoZero = (ord(info[4]) & 32) / 32 
-            self.lowLamp = (ord(info[4]) & 16) / 16
-            self.traySize = 140 if ord(info[4]) & 8 == 1 else 80
-            self.activeLamp = (ord(info[4]) & 4) / 4
-            self.standby = (ord(info[4]) & 2) /2
-            self.highLight = ord(info[4]) & 1
+            #self.id = info[0] / 16 - do not change based on returned values
+
+            self.type = int (info[2] // 16)
+            self.version = str(int (info[2] % 16)) + "." + str(int( info[3] // 16)) + str(int(info[3] % 16))
+            self.power_frequency = (info[4] & 128) // 128
+            self.auto_focus = (info[4] & 64) // 64
+            self.auto_zero = (info[4] & 32) // 32 
+            self.low_lamp = (info[4] & 16) // 16
+            self.tray_size = 140 if (info[4] & 8) == 1 else 80
+            self.active_lamp = (info[4] & 4) // 4
+            self.standby = (info[4] & 2) // 2
+            self.high_light = info[4] & 1
         else:
             self.info = None
-            self.projektorType = None
-            self.projektorVersion = None
-            self.powerFrequency = None
-            self.autoFocus = None
-            self.autoZero = None
-            self.lowLamp = None
-            self.traySize = None
-            self.activeLamp = None
+            self.type = None
+            self.version = None
+            self.power_frequency = None
+            self.auto_focus = None
+            self.auto_zero = None
+            self.low_lamp = None
+            self.tray_size = None
+            self.active_lamp = None
             self.standby = None
-            self.highLight = None
+            self.high_light = None
 
     def get_system_status(self, debug = True):
-        s = self.comms(EktaproCommand(self.projektorID).statusSystemStatus(), read_bytes = 3, debug = debug)
+        s = self.comms(EktaproCommand(self.id).statusSystemStatus(), read_bytes = 3, debug = debug)
         if (self.connected and (len (s) == 3) ):
-            if not (ord(s[0]) % 8 == 6) or not (ord(s[2]) % 4 == 3):
+            if not (s[0] % 8 == 6) or not (s[2] % 4 == 3):
                 #or not (ord(s[1]) % 64 == 3) \ #should be 11XX XXXX don't check for now
                 log.error ("get_status invalid response")
                 raise IOError("Invalid response")
             #self.projector_id = ord(s[0]) / 8 - do not change based on returned values 
-            self.unknown_flag1 = (ord(s[1]) & 16 ) / 16  #this is undocumented - seems to be on after reset process
-            self.unknown_flag2 = (ord(s[1]) & 32 ) / 32
-            self.lamp1_status = (ord(s[1]) & 8) / 8
-            self.lamp2_status = (ord(s[1]) & 4) / 4
-            self.projector_status = (ord(s[1]) & 2) / 2
-            self.at_zero_position = ord(s[1]) & 1
-            self.slide_lift_motor_error = (ord(s[2]) & 128) /128
-            self.tray_transport_motor_error = (ord(s[2]) & 64) / 64
-            self.command_error = (ord(s[2]) & 32)  / 32
-            self.overrun_error = (ord(s[2]) & 16) / 16 
-            self.buffer_overflow_error = (ord(s[2]) & 8) / 8
-            self.framing_error = (ord(s[2]) & 4) / 4
+            self.unknown_flag1 = (s[1] & 16 ) // 16  #this is undocumented - seems to be on after reset process
+            self.unknown_flag2 = (s[1] & 32 ) // 32
+            self.lamp1_status = (s[1] & 8) // 8
+            self.lamp2_status = (s[1] & 4) // 4
+            self.status = (s[1] & 2) // 2
+            self.at_zero_position = s[1] & 1
+            self.slide_lift_motor_error = (s[2] & 128) // 128
+            self.tray_transport_motor_error = (s[2] & 64) // 64
+            self.command_error = (s[2] & 32)  // 32
+            self.overrun_error = (s[2] & 16) // 16 
+            self.buffer_overflow_error = (s[2] & 8) // 8
+            self.framing_error = (s[2] & 4) // 4
         else:
             self.unknown_flag1 = None
             self.unknown_flag2 = None
             self.lamp1_status = None
             self.lamp2_status = None
-            self.projector_status = None
+            self.status = None
             self.at_zero_position = None
             self.slide_lift_motor_error = None
             self.tray_transport_motor_error = None
@@ -255,11 +258,11 @@ class EktaproDevice:
             self.buffer_overflow_error = None
             self.framing_error = None
 
-        if (self.projector_status == 1):
-            self.isbusy = True
+        if (self.status == 1):
+            self.is_busy = True
         else:
-            self.isbusy = False
-        return self.projector_status
+            self.is_busy = False
+        return self.status
 
     def comms (self, command, read_bytes = 0, pre_timeout = 0, post_timeout = 0, debug = True):
         rec = ""
@@ -300,7 +303,7 @@ class EktaproDevice:
        
     def get_details(self):
         return   "\n Model: " + self.get_model() \
-               + "\n Projector Busy: " + str(self.projector_status) \
+               + "\n Projector Busy: " + str(self.status) \
                + "\n At zero: " + str(self.at_zero_position) \
                + "\n Slide lift motor error: " + str(self.slide_lift_motor_error) \
                + "\n Tray transport motor error: " + str(self.tray_transport_motor_error) \
@@ -308,16 +311,16 @@ class EktaproDevice:
                + "\n Buffer overflow: " + str( self.buffer_overflow_error) \
                + "\n Overrun error: " + str(self.overrun_error) \
                + "\n Framing error: " + str(self.framing_error) \
-               + "\n Tray size: " + str(self.traySize) \
-               + "\n Active lamp: " + ("L2" if self.activeLamp == 1 else "L1") \
+               + "\n Tray size: " + str(self.tray_size) \
+               + "\n Active lamp: " + ("L2" if self.active_lamp == 1 else "L1") \
                + "\n Standby: " + ("On" if self.standby == 1 else "Off") \
                + "\n Flag 1: " + str(self.unknown_flag1 ) \
                + "\n Flag 2: "  + str(self.unknown_flag2 ) \
-               + "\n Power frequency: " + ("60Hz" if self.powerFrequency == 1 else "50Hz") \
-               + "\n Autofocus: " + ("On" if self.autoFocus == 1 else "Off") \
-               + "\n Autozero: " + ("On" if self.autoZero == 1 else "Off") \
-               + "\n Low lamp mode: " + ("On" if self.lowLamp == 1 else "Off") \
-               + "\n High light: " + ("On" if self.highLight == 1 else "Off")
+               + "\n Power frequency: " + ("60Hz" if self.power_frequency == 1 else "50Hz") \
+               + "\n Autofocus: " + ("On" if self.auto_focus == 1 else "Off") \
+               + "\n Autozero: " + ("On" if self.auto_zero == 1 else "Off") \
+               + "\n Low lamp mode: " + ("On" if self.low_lamp == 1 else "Off") \
+               + "\n High light: " + ("On" if self.high_light == 1 else "Off")
      
 class EktaproCommand:
 
@@ -331,10 +334,10 @@ class EktaproCommand:
 
     def __init__(self, *args):
         if len(args) == 1:
-            self.projektorID = args[0]
+            self.id = args[0]
             self.initalized = False
         elif len(args) == 3:
-            self.projektorID = args[0] / 8
+            self.id = args[0] / 8
             self.mode = args[0] % 8 / 2
             self.arg1 = args[1]
             self.arg2 = args[2]
@@ -345,10 +348,8 @@ class EktaproCommand:
     def toData(self):
         if not self.initalized:
             raise Exception("Command not initialized")
-
-        return chr(self.projektorID * 8 + self.mode * 2 + 1) \
-            + chr(self.arg1) + chr(self.arg2)
-
+        return bytes( [ int(self.id * 8 + self.mode * 2 + 1) , int (self.arg1)  , int (self.arg2) ] )
+    
     # Command  construction
     # Parameter mode
 
@@ -507,7 +508,7 @@ class EktaproCommand:
             3: "Status Request Mode - " + self.statusRequestToString()
         }
 
-        return "Projector " + str(self.projektorID) + " - " \
+        return "Projector " + str(self.id) + " - " \
                + commandstring.get(self.mode, "Unknown Mode")
 
     def parameterModeToString(self):
@@ -573,4 +574,38 @@ class EktaproCommand:
             12: "System status",
             13: "System return"
         }
-        return statusRequests.get(self.arg1 / 16, "Unknown request")       
+        return statusRequests.get(self.arg1 / 16, "Unknown request")
+
+if __name__ == "__main__":
+    import traceback, time, logging
+    logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s.%(msecs)d %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S')
+    
+    tpt = EktaproDevice()
+    tpt.open(None)
+    if (tpt.connected):
+        log.info("EktaproDevice device connected")
+    else:
+        log.error ("EktaproDevice device not connected")
+    try:
+        log.debug(tpt.get_version())
+    except:
+        log.warn ("EktaproDevice not reporting version")
+    try:
+        tpt.reset()
+    except:
+        log.warn ("EktaproDevice not resetting")
+    try:
+        log.debug (tpt.get_details())
+    except:
+        log.warn ("EktaproDevice not resetting")
+        
+    for l in [1, 2, 3 ,4 ,5 , 6 ]:
+        try:
+           tpt.next(20,20)
+           tpt.prev(20,20)
+   
+        except: 
+            traceback.print_exc()
+            sys.stderr.write('ERROR: %s\n' % str(err))
