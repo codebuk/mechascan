@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 
    ektapro v1.0
@@ -22,7 +22,7 @@
    One projector per serial port is supported.
    
 """
-import serial, pprint, time, logging, fcntl
+import serial, time, logging, fcntl
 from enumerate_serial import *
 
 
