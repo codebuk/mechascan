@@ -24,12 +24,13 @@ class GardasoftDevice:
         else:
             if (self.open_port( port)):
                 return True
+        log.warn( "Can not find a gardasoft device")
         return False
 
     def open_port(self, port):
         log.info("Trying port: " + port)
         try:
-            collection = [ 9600, 115200]
+            collection = [9600, 115200]
             for speeds in collection:
                 self.ser = serial.serial_for_url(port, speeds, timeout=.1, writeTimeout=.01)
                 log.info("Port opened: " + port)

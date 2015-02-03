@@ -23,8 +23,6 @@
    
 """
 from enumerate_serial import *
-
-
 log = logging.getLogger(__name__)
 
 
@@ -47,8 +45,6 @@ class EktaproDevice:
         self.get_system_return()
         #self.pre_timeout = 2
         #self.post_timeout = 2
-
-
 
     def open_port(self, port):
         self.close()
