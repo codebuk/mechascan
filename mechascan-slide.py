@@ -8,7 +8,8 @@
 
 
 from tkinter import * 
-import yaml, pprint, os, logging   threading
+from PIL import ImageTk, Image
+import yaml, pprint, os, logging, threading
 from enum import Enum
 from ektapro import *
 from cam import *
@@ -40,6 +41,7 @@ class Main():
         self.led = GardasoftDevice()
         self.tpt = EktaproDevice()
         self.create_gui()
+        #self.create_gui_image_viewer()
         self.gui ("Enable")
         self.update_clock()         #this creates tk callback and time to update gui
         thread = threading.Thread(target=self.init_hardware, args = (self.led, self.tpt, self.cam ))
@@ -90,6 +92,15 @@ class Main():
                 f = "/home/dan/Documents/pics/" + str(slide) + ".jpg"
                 log.debug ("Capture complete - Now save" + f )
                 self.cam.save(f)
+                self.tiv.original = Image.open(f)
+                self.tiv.image = ImageTk.PhotoImage(self.tiv.original)
+                print (self.tiv.display['width'])
+
+                size = (1920,  1080)
+                resized = self.tiv.original.resize(size,Image.ANTIALIAS)
+                self.tiv.image = ImageTk.PhotoImage(resized)
+                self.tiv.display.delete("IMG")
+                self.tiv.display.create_image(0, 0, image=self.tiv.image, anchor=NW, tags="IMG")
                 self.cam.close()
             log.error("Scan time: " + str(time.time () - ts) + "for slot: " + str (slide))
         self.stop_scan()
@@ -121,8 +132,7 @@ class Main():
         self.t.after(100, self.update_clock)
         
     def connect_press(self):
-        init_hardware()
-        self.gui ("Enable")
+        self.init_hardware ( self.led, self.tpt, self.cam )
 
     def inputs_change(self, event=None):
         try:
@@ -243,6 +253,8 @@ class Main():
         self.t.update()
 
     def onQuit(self):
+        self.tiv.destroy()
+        self.t.destroy()
         try:
             led.close()
         except:
@@ -252,35 +264,38 @@ class Main():
         except:
             pass
         try:
-            self.tpt.reset()
+            self.tpt.reset()  #move back to 0 position
             self.tpt.close()
         except:
             pass
-        #self.t.destroy()
 
-##    def create_gui_image_viewer(self):
-##        self.tiv = Toplevel()
-##        self.tiv.geometry("1920x1080+130+0")
-##        self.tiv.protocol('WM_DELETE_WINDOW', self.onQuit)
-##        self.tiv.wm_title("Image View")
-##        canvas = Canvas(self.tiv, width=400, height=300,  background=BLACK )
-##        canvas.pack()
-##
-##        # Load the image file
-##        im = Image.open("./images/ektachrome-kodak.jpg")
-##        # Put the image into a canvas compatible class, and stick in an
-##        # arbitrary variable to the garbage collector doesn't destroy it
-##        canvas.image = ImageTk.PhotoImage(im)
-##        # Add the image to the canvas, 
-##        canvas.create_image(0, 0, image=canvas.image)
-##      
-##        self.t.bind("<Prior>", self.prev_press)
-##        self.t.bind("<Next>", self.next_press)
+    # def create_gui_image_viewer(self):
+    #     self.tiv = Toplevel()
+    #     self.tiv.geometry("1920x1080+130+0")
+    #     self.tiv.protocol('WM_DELETE_WINDOW', self.onQuit)
+    #     self.tiv.wm_title("Image View")
+    #     self.tiv.image_panel = Frame(self.tiv)
+    #
+    #     self.tiv.image_panel.columnconfigure(0,weight=1)
+    #     self.tiv.image_panel.rowconfigure(0,weight=1)
+    #     self.tiv.original = Image.open('/home/dan/Documents/pics/11.jpg')
+    #     self.tiv.image = ImageTk.PhotoImage(self.tiv.original)
+    #     self.tiv.display = Canvas(self.tiv.image_panel, bd=0, highlightthickness=0)
+    #     self.tiv.display.create_image(0, 0, image=self.tiv.image, anchor=NW, tags="IMG")
+    #     self.tiv.display.grid(row=0, sticky=W+E+N+S)
+    #     self.tiv.image_panel.pack(fill=BOTH, expand=1)
+    #     self.tiv.image_panel.bind("<Configure>", self.tiv_resize)
+    #
+    # def tiv_resize(self, event):
+    #     size = (event.width, event.height)
+    #     resized = self.tiv.original.resize(size,Image.ANTIALIAS)
+    #     self.tiv.image = ImageTk.PhotoImage(resized)
+    #     self.tiv.display.delete("IMG")
+    #     self.tiv.display.create_image(0, 0, image=self.tiv.image, anchor=NW, tags="IMG")
 
-        
     def create_gui(self):
         self.t = Tk()
-        self.t.geometry("1920x1080+130+0")
+        #self.t.geometry("1920x1080+130+0")
         self.t.protocol('WM_DELETE_WINDOW', self.onQuit)
         self.t.wm_title("Mechascan Slide")
 
@@ -290,22 +305,27 @@ class Main():
         self.t.status_panel = Frame(self.t, borderwidth=2,  relief="sunken")
         self.t.settings_panel = Frame(self.t)
         self.t.control_panel = Frame(self.t)
-
+        self.t.image_panel = Frame(self.t)
         self.t.manual_panel = Frame(self.t)
-        #self.t.log_panel = Frame(self.t)
-              
+
         self.t.manual_panel.grid (row=0, column=0, sticky='ew' )
         self.t.status_panel.grid (row=4, column=0, sticky='ew' )
         self.t.settings_panel.grid (row=1, column=0, sticky='ew' )
         self.t.control_panel.grid (row=2, column=0, sticky='ew' )
-        #self.t.log_panel.grid (row=3, column=0, sticky='nsew' )
+        # self.t.image_panel.grid (row=3, column=0, sticky='nsew' )
 
         self.t.grid_rowconfigure(3, weight=1)
         self.t.grid_columnconfigure(3, weight=1)
-
-        #self.t.txt = ScrolledText(self.t.log_panel, undo=True)
-        #self.t.txt['font'] = ('consolas', '12')
-        #self.t.txt.pack(expand=True, fill='both')
+        #
+        # #self.t.txt = ScrolledText(self.t.log_panel, undo=True)
+        # #self.t.txt['font'] = ('consolas', '12')
+        # #self.t.txt.pack(expand=True, fill='both')
+        #
+        # self.imgf = Image.open('/home/dan/Documents/pics/11.jpg')
+        # self.img = ImageTk.PhotoImage(self.imgf)
+        # self.t.image_label = Label(self.t.image_panel, image = self.img)
+        # self.t.image_label.place(x=0,y=0,width=self.imgf.size[0],height=self.imgf.size[1])
+        # #self.t.image_label.pack(side=BOTTOM )
 
         self.t.time_label = Label(self.t.status_panel, text="Busy", borderwidth=2,  relief="sunken")
         self.t.time_label.pack(side=RIGHT, anchor=N, padx=1, pady=1)

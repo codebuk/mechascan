@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from glob import glob
-import sys  serial, logging
+import sys, serial,logging
 from serial import *
 
 log = logging.getLogger(__name__)
