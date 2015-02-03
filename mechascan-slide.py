@@ -269,30 +269,6 @@ class Main():
         except:
             pass
 
-    # def create_gui_image_viewer(self):
-    #     self.tiv = Toplevel()
-    #     self.tiv.geometry("1920x1080+130+0")
-    #     self.tiv.protocol('WM_DELETE_WINDOW', self.onQuit)
-    #     self.tiv.wm_title("Image View")
-    #     self.tiv.image_panel = Frame(self.tiv)
-    #
-    #     self.tiv.image_panel.columnconfigure(0,weight=1)
-    #     self.tiv.image_panel.rowconfigure(0,weight=1)
-    #     self.tiv.original = Image.open('/home/dan/Documents/pics/11.jpg')
-    #     self.tiv.image = ImageTk.PhotoImage(self.tiv.original)
-    #     self.tiv.display = Canvas(self.tiv.image_panel, bd=0, highlightthickness=0)
-    #     self.tiv.display.create_image(0, 0, image=self.tiv.image, anchor=NW, tags="IMG")
-    #     self.tiv.display.grid(row=0, sticky=W+E+N+S)
-    #     self.tiv.image_panel.pack(fill=BOTH, expand=1)
-    #     self.tiv.image_panel.bind("<Configure>", self.tiv_resize)
-    #
-    # def tiv_resize(self, event):
-    #     size = (event.width, event.height)
-    #     resized = self.tiv.original.resize(size,Image.ANTIALIAS)
-    #     self.tiv.image = ImageTk.PhotoImage(resized)
-    #     self.tiv.display.delete("IMG")
-    #     self.tiv.display.create_image(0, 0, image=self.tiv.image, anchor=NW, tags="IMG")
-
     def create_gui(self):
         self.t = Tk()
         #self.t.geometry("1920x1080+130+0")
