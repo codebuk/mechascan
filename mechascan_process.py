@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 """
    Copyright (C) 2014,2015 Breager
@@ -10,32 +11,31 @@ from ektapro import *
 from cam import *
 from gardasoft import *
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
-                    datefmt='%H:%M:%S')
-# shut up gphoto
-logit = logging.getLogger('gphoto2')
-logit.setLevel(logging.INFO)
-
 class scan_state (Enum):
     stopped = 1
     scanning = 2
 
 class mechascan_process():
     def __init__(self):
+
         self.capture_delay_min = 0
         self.capture_delay_max = 10000
         self.capture_delay = 100
+
         self.slot_min = 0
         self.slot_max = 140
         self.slot_start = 1
         self.slot_end = 80
+
         self.scan_state = scan_state.stopped
+
         self.led_flash = 2000
         self.led_rest = 0
+
         self.led_enabled = True
         self.tpt_enabled = True
         self.cam_enabled = True
+
         self.cam = CameraDevice()
         self.led = GardasoftDevice()
         self.tpt = EktaproDevice()
@@ -78,22 +78,22 @@ class mechascan_process():
             log.error("Scan time: " + str(time.time () - ts) + "for slot: " + str (slide))
         self.stop_scan()
 
-    def init_hardware (self, led, tpt, cam):
+    def init_hardware (self):
         #gardasoft setup
-        led.open(None)
+        self.led.open(None)
         try:
-            led.version()
+            self.led.version()
         except:
             log.warn ("LED device not connected")
-        led.strobe(1,0,4000,4)
-        led.continuous (1, self.led_rest)
+        self.led.strobe(1,0,4000,4)
+        self.led.continuous (1, self.led_rest)
 
         #ektapro setup
-        tpt.open(None)
-        tpt.reset()
+        self.tpt.open(None)
+        self.tpt.reset()
 
     def connect_hardware_threaded(self):
-        thread = threading.Thread(target=self.init_hardware, args = (self.led, self.tpt, self.cam ))
+        thread = threading.Thread(target=self.init_hardware)
         thread.daemon = True        # thread dies when main thread (only non-daemon thread) exits.
         thread.start()
 

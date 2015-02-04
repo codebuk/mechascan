@@ -1,3 +1,4 @@
+
 from PyQt5.QtCore import Qt, QDir, QRect, QTimer
 from PyQt5.QtGui import QImage, QPixmap, QTransform, QPainter
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem,
@@ -5,16 +6,28 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QGraphicsScene, QGraphic
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
 from gi.repository import GExiv2
 from functools import partial
-import os ,sys,random
-from editimage import CropDialog ,SpinBox
-from preferences import *
+import os
+import sys
+import editimage
+import preferences
+import logging
+import mechascan_process
 #ui generated code
 from main_window import *
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
+                    datefmt='%H:%M:%S')
+log = logging.getLogger(__name__)
+# shut up gphoto
+logit = logging.getLogger('gphoto2')
+logit.setLevel(logging.INFO)
 
 
 class mw(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super(mw, self).__init__()
+        log.info("ssssss")
         self.setupUi(self)
         self.printer = QPrinter()
         self.load_img = self.load_img_fit
@@ -44,10 +57,40 @@ class mw(QMainWindow, Ui_MainWindow):
         #self.read_list = parent.read_list
         #self.write_list = parent.write_list
         self.pics_dir = os.path.expanduser('~/Pictures') or QDir.currentPath()
-        self.resize(400, 600)
 
+        self.resize(1000, 600)
+
+
+
+    def scan (self):
+        log.debug("scan start")
+        self.check_gui()
+
+    def scan_stop(self):
+        log.debug("scan stop")
+
+    def tpt_next(self):
+        log.debug("scan next")
+
+    def tpt_prev(self):
+        log.debug("scan prev")
+
+    def check_gui(self):
+        if self.cb_auto_home.isChecked():log.debug("auto home")
+        if self.cb_use_led.isChecked():log.debug("use led")
+        if self.cb_use_tpt.isChecked():log.debug("use tpt")
+        if self.cb_use_cam.isChecked():log.debug("use cam")
 
     def create_actions(self):
+        #connect to uic generated objects
+        self.tb_play.clicked.connect(self.scan)
+        self.tb_stop.clicked.connect(self.scan_stop)
+        self.tb_next.clicked.connect(self.tpt_next)
+        self.tb_prev.clicked.connect(self.tpt_prev)
+
+
+
+
 
         self.open_act.triggered.connect(self.open)
         self.open_new_act.triggered.connect(partial(self.open, True))
@@ -351,8 +394,8 @@ class mw(QMainWindow, Ui_MainWindow):
         preferences.HelpDialog(self)
 
     def about_cm(self):
-        about_message = 'Version: 0.3.9\nAuthor: David Whitlock\nLicense: GPLv3'
-        QMessageBox.about(self, 'About Cheesemaker', about_message)
+        about_message = 'Version: 0.0.0\nAuthor: Dan Tyrrell\nwww.breager.com'
+        QMessageBox.about(self, 'About Mechascan', about_message)
 
 class ImageView(QGraphicsView):
     def __init__(self, parent=None):
@@ -434,20 +477,12 @@ class ImageViewer(QApplication):
                 self.open_win(fname)
 
     def open_win(self, fname):
-        # win = MainWindow(self)
-        # win.show()
-        # if fname:
-        #     win.open_img(fname)
-        # else:
-        #     win.open()
-
         win = mw()
         win.show()
         if fname:
             win.open_img(fname)
         else:
             win.open()
-
 
 if __name__ == '__main__':
     app = ImageViewer(sys.argv)

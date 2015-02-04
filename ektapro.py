@@ -23,6 +23,7 @@
    
 """
 from enumerate_serial import *
+import logging
 log = logging.getLogger(__name__)
 
 
@@ -576,7 +577,7 @@ class EktaproCommand:
 
 
 if __name__ == "__main__":
-    import traceback, time, logging
+    import time, logging
 
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s.%(msecs)d %(levelname)s %(message)s',
@@ -607,5 +608,6 @@ if __name__ == "__main__":
             tpt.prev(20, 20)
 
         except:
-            traceback.print_exc()
-            sys.stderr.write('ERROR: %s\n' % str(err))
+            pass
+
+

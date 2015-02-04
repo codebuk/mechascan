@@ -141,7 +141,7 @@ class GardasoftDevice:
         self.all_off()
 
 if __name__ == "__main__":
-    import traceback, time, logging
+    import time, logging
     logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s.%(msecs)d %(levelname)s %(message)s',
                     datefmt='%H:%M:%S')
@@ -174,10 +174,9 @@ if __name__ == "__main__":
             led.clear_error()
         
         except: 
-            traceback.print_exc()
             print ("emergency shut off")
             led.all_off()
-            sys.stderr.write('ERROR: %s\n' % str(err))
+
 
 
 

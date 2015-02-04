@@ -77,6 +77,16 @@
            </widget>
           </item>
           <item>
+           <widget class="QCheckBox" name="cb_use_tpt">
+            <property name="text">
+             <string>Use Transport</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QCheckBox" name="cb_use_led">
             <property name="text">
              <string>Lighting</string>
@@ -87,21 +97,14 @@
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="cb_autohome">
+           <widget class="QCheckBox" name="cb_auto_home">
             <property name="text">
              <string>Return to home</string>
             </property>
             <property name="checked">
              <bool>true</bool>
             </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="cb_use_tpt">
-            <property name="text">
-             <string>Use Transport</string>
-            </property>
-            <property name="checked">
+            <property name="tristate">
              <bool>true</bool>
             </property>
            </widget>
@@ -148,10 +151,10 @@
       <property name="features">
        <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
       </property>
-      <widget class="QWidget" name="dockWidgetContents_3">
+      <widget class="QWidget" name="dockWidgetContents_control">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_5">
+         <layout class="QHBoxLayout" name="horizontalLayout_control">
           <property name="spacing">
            <number>0</number>
           </property>
@@ -169,7 +172,7 @@
            </spacer>
           </item>
           <item>
-           <widget class="QToolButton" name="tb_play_3">
+           <widget class="QToolButton" name="tb_prev">
             <property name="enabled">
              <bool>true</bool>
             </property>
@@ -186,7 +189,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QToolButton" name="toolButton_7">
+           <widget class="QToolButton" name="tb_play">
             <property name="text">
              <string>...</string>
             </property>
@@ -198,7 +201,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QToolButton" name="tb_stop_3">
+           <widget class="QToolButton" name="tb_stop">
             <property name="font">
              <font>
               <pointsize>8</pointsize>
@@ -220,13 +223,16 @@
            </widget>
           </item>
           <item>
-           <widget class="QToolButton" name="toolButton_8">
+           <widget class="QToolButton" name="tb_next">
             <property name="text">
              <string>...</string>
             </property>
             <property name="icon">
              <iconset resource="qt_resources.qrc">
               <normaloff>:/icons/resources/ic_navigate_next_48px.svg</normaloff>:/icons/resources/ic_navigate_next_48px.svg</iconset>
+            </property>
+            <property name="shortcut">
+             <string>N</string>
             </property>
            </widget>
           </item>
@@ -554,6 +560,11 @@
   <action name="action">
    <property name="text">
     <string>te</string>
+   </property>
+  </action>
+  <action name="actionNext">
+   <property name="text">
+    <string>next</string>
    </property>
   </action>
  </widget>
