@@ -34,7 +34,7 @@ class EktaproDevice:
         self.max_brightness = 100
         self.brightness = 0
         self.slide = None
-        self.tray_size = None
+        self.tray_size = 80 #this allows dummy scanning
         self.max_display_tray = 140
         self.info = None
         self.id = 0
@@ -194,7 +194,10 @@ class EktaproDevice:
                 log.debug(self.get_details())
 
     def get_system_return(self, debug=True):
-        self.info = self.comms(EktaproCommand(self.id).statusSystemReturn(), read_bytes=5, debug=debug)
+        if (self.connected):
+            self.info = self.comms(EktaproCommand(self.id).statusSystemReturn(), read_bytes=5, debug=debug)
+        else:
+            self.info = ""
         if (self.connected and (len(self.info) == 5) ):
             info = self.info
             #self.id = info[0] / 16 - do not change based on returned values
@@ -217,7 +220,7 @@ class EktaproDevice:
             self.auto_focus = None
             self.auto_zero = None
             self.low_lamp = None
-            self.tray_size = None
+            self.tray_size = 80
             self.active_lamp = None
             self.standby = None
             self.high_light = None

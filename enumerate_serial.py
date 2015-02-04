@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 from glob import glob
-import sys, serial,logging
+import sys
+import serial
 from serial import *
-
+import logging
 log = logging.getLogger(__name__)
 
 def enumerate(check_lock = None):

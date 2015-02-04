@@ -12,12 +12,13 @@ import editimage
 import preferences
 import logging
 import mechascan_process
+#from mechascan_process import *
 #ui generated code
 from main_window import *
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
-                    datefmt='%H:%M:%S')
+                    datefmt='%M:%S')
 log = logging.getLogger(__name__)
 # shut up gphoto
 logit = logging.getLogger('gphoto2')
@@ -27,7 +28,9 @@ logit.setLevel(logging.INFO)
 class mw(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super(mw, self).__init__()
-        log.info("ssssss")
+        log.debug("mw start")
+        self.msp = mechascan_process.process()
+        s = self.msp.connect_hardware_threaded()
         self.setupUi(self)
         self.printer = QPrinter()
         self.load_img = self.load_img_fit
@@ -57,7 +60,6 @@ class mw(QMainWindow, Ui_MainWindow):
         #self.read_list = parent.read_list
         #self.write_list = parent.write_list
         self.pics_dir = os.path.expanduser('~/Pictures') or QDir.currentPath()
-
         self.resize(1000, 600)
 
 
@@ -65,6 +67,7 @@ class mw(QMainWindow, Ui_MainWindow):
     def scan (self):
         log.debug("scan start")
         self.check_gui()
+        self.msp.scan()
 
     def scan_stop(self):
         log.debug("scan stop")
@@ -76,10 +79,13 @@ class mw(QMainWindow, Ui_MainWindow):
         log.debug("scan prev")
 
     def check_gui(self):
-        if self.cb_auto_home.isChecked():log.debug("auto home")
-        if self.cb_use_led.isChecked():log.debug("use led")
-        if self.cb_use_tpt.isChecked():log.debug("use tpt")
-        if self.cb_use_cam.isChecked():log.debug("use cam")
+        self.msp.led_enabled = self.cb_use_led.isChecked()
+        self.msp.cam_enabled = self.cb_use_cam.isChecked()
+        self.msp.tpt_enabled = self.cb_use_tpt.isChecked()
+        self.msp.auto_home_enabled = self.cb_auto_home.isChecked()
+        self.msp.slot_start = self.sb_start_slot.value()
+        self.msp.slot_end = self.sb_end_slot.value()
+        self.msp.settle_delay = self.sb_settle_delay.value()
 
     def create_actions(self):
         #connect to uic generated objects
@@ -87,10 +93,6 @@ class mw(QMainWindow, Ui_MainWindow):
         self.tb_stop.clicked.connect(self.scan_stop)
         self.tb_next.clicked.connect(self.tpt_next)
         self.tb_prev.clicked.connect(self.tpt_prev)
-
-
-
-
 
         self.open_act.triggered.connect(self.open)
         self.open_new_act.triggered.connect(partial(self.open, True))

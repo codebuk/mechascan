@@ -1,6 +1,6 @@
+#!/usr/bin/env python3
 import re
 import logging
-
 log = logging.getLogger(__name__)
 
 from enumerate_serial import * 

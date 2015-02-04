@@ -15,12 +15,12 @@ class scan_state (Enum):
     stopped = 1
     scanning = 2
 
-class mechascan_process():
+class process:
     def __init__(self):
 
         self.capture_delay_min = 0
         self.capture_delay_max = 10000
-        self.capture_delay = 100
+        self.settle_delay = 100
 
         self.slot_min = 0
         self.slot_max = 140
@@ -41,7 +41,7 @@ class mechascan_process():
         self.tpt = EktaproDevice()
 
     def scan(self):
-        if not self.led_enable: self.led.continuous (1,0)
+        if not self.led_enabled: self.led.continuous (1,0)
         self.scan_state = scan_state.scanning
         ok = False
         if self.tpt_enabled: self.tpt.select(self.slot_start)
@@ -52,13 +52,8 @@ class mechascan_process():
             if (self.tpt_enabled):
                 while (self.tpt.get_status(busy = True, debug = False)):
                     print ("1 = 1")
-                if (self.capture_delay > 0 ):
-                    tcd = time.time()
-                    while 1:
-                        if (time.time () - tcd > (self.capture_delay /1000)):
-                            break
-                    log.debug ( "Delay for: " + str(time.time () - tcd))
-            if self.led_enabled:self.led.continuous (1, self.led_flash)
+                if (self.settle_delay > 0 ): time.sleep (self.settle_delay /1000)
+            if self.led_enabled: self.led.continuous (1, self.led_flash)
             if (self.cam_enabled == True):
                 try:
                     self.cam.open()
@@ -69,16 +64,16 @@ class mechascan_process():
                 except:
                     pass
             if self.led_enabled: self.led.continuous (1, self.led_rest)
-            if self.enable_tpt.get(): self.tpt.next(post_timeout = 0)
+            if self.tpt_enabled: self.tpt.next(post_timeout = 0)
             if (ok and self.enable_cam.get()):
                 f = "/home/dan/Documents/pics/" + str(slide) + ".jpg"
                 log.debug ("Capture complete - Now save" + f )
                 self.cam.save(f)
                 self.cam.close()
-            log.error("Scan time: " + str(time.time () - ts) + "for slot: " + str (slide))
+            log.debug("Scan time: " + str(time.time () - ts) + "for slot: " + str (slide))
         self.stop_scan()
 
-    def init_hardware (self):
+    def connect_hardware (self):
         #gardasoft setup
         self.led.open(None)
         try:
@@ -93,12 +88,9 @@ class mechascan_process():
         self.tpt.reset()
 
     def connect_hardware_threaded(self):
-        thread = threading.Thread(target=self.init_hardware)
+        thread = threading.Thread(target=self.connect_hardware)
         thread.daemon = True        # thread dies when main thread (only non-daemon thread) exits.
         thread.start()
-
-    def connect_hardware(self):
-        self.init_hardware ( self.led, self.tpt, self.cam )
 
     def disconnect_hardware(self):
         try:
@@ -121,11 +113,11 @@ class mechascan_process():
         except:
             capture_delay = -1
         if capture_delay in range(self.capture_delay_min, self.capture_delay_max):
-            self.capture_delay = capture_delay
+            self.settle_delay = capture_delay
             log.debug ("Valid capture delay: " + str (capture_delay))
         else:
             log.error ("Invalid capture delay: " + str (capture_delay))
-            self.capture_delay = self.capture_delay_min
+            self.settle_delay = self.capture_delay_min
             #todo raise err
 
     def slot_start(self, slot_start):

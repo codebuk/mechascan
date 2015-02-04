@@ -20,6 +20,7 @@ import gphoto2 as gp
 class CameraDevice:
     def __init__(self):
         log.debug('cam device init')
+        self.connected = False
         
     def __del__(self, type, value, traceback):
         log.debug('cam device exit')
@@ -45,6 +46,7 @@ class CameraDevice:
 
         self.context = gp.gp_context_new()
         gp.check_result(gp.gp_camera_init(self.camera, self.context))
+        self.connected = True
         #self.set_config ( self.camera, self.context, 'capturetarget', 'sdram' )
 
     def capture(self):
@@ -64,12 +66,14 @@ class CameraDevice:
         gp.check_result(gp.gp_camera_file_delete(self.camera, self.path.folder, self.path.name, self.context))
 
     def close(self):
-        log.debug('cam device close')
-        try:
-            gp.check_result(gp.gp_camera_exit(self.camera, self.context))
-        except:
-            log.info ("Error closing camera - not opened?") 
-        return 0
+        if (self.connected == True):
+            log.debug('cam device close')
+            try:
+                gp.check_result(gp.gp_camera_exit(self.camera, self.context))
+            except:
+                log.info ("Error closing camera - not opened?")
+            return 0
+            self.connected = False
 
 if __name__ == "__main__":
 
