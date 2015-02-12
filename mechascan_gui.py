@@ -94,7 +94,12 @@ class mw(QMainWindow, Ui_MainWindow):
             pass
         if s:
             self.statusbar.showMessage(s, 1000)
-        self.check_led.setChecked(True)
+
+        self.lbl_led_status.setText("LED: " + self.msp.led_port)
+        self.lbl_tpt_status.setText("Transport: " + self.msp.tpt_port)
+
+        self.lbl_cam_status.setText("Camera: " + "Faaark")
+        # self.check_led.setChecked(True)
         # checkedState : int
 
         # This property indicates the current checked state of the checkbox.

@@ -67,6 +67,7 @@ class EktaproDevice:
                     logging.info("Not a Ektapro device")
                 else:
                     self.serialDevice = s
+                    self.port = port
                     self.connected = 1
                     return 1
         except serial.SerialException:
@@ -98,6 +99,7 @@ class EktaproDevice:
                 self.serialDevice.close()
             except:
                 pass
+        self.port = "Not Connected"
         self.connected = 0
         self.get_status()
 

@@ -36,8 +36,17 @@ class process:
         self.led_rest = 0
 
         self.led_enabled = True
+        self.led_port = "Not connected"
+        self.led_connected = False
+
         self.tpt_enabled = True
+        self.tpt_port = "Not connected"
+        self.tpt_connected = False
+
         self.cam_enabled = True
+        self.cam_port = "Not connected"
+        self.cam_connected = False
+
 
         self.cam = CameraDevice()
         self.led = GardasoftDevice()
@@ -55,9 +64,10 @@ class process:
             self.scan_state = scan_state.scanning
             ok = False
             if self.tpt_enabled: self.tpt.select(self.slot_start)
-            self.queue.put("Scanning slide in slot " + str(slide))
+
             for slide in range(self.slot_start, self.slot_end + 1):
                 ts = time.time()
+                self.queue.put("Scanning slide in slot " + str(slide) + " at:" + ts)
                 if (self.scan_state == scan_state.stopped): break
                 if (self.tpt_enabled):
                     while (self.tpt.get_status(busy=True, debug=False)): pass
@@ -94,12 +104,14 @@ class process:
                 log.warn("LED device not connected")
             self.led.strobe(1, 0, 4000, 4)
             self.led.continuous(1, self.led_rest)
-            self.led_connedcted = self.led.connected
+            self.led_port = self.led.port
+            self.led_connected = self.led.connected
 
             # ektapro setup
             self.tpt.open(None)
             self.tpt.reset()
-            self.tpt_connedcted = self.tpt.connected
+            self.tpt_port = self.tpt.port
+            self.tpt_connected = self.tpt.connected
 
 
 
@@ -121,6 +133,7 @@ class process:
             try:
                 self.tpt.reset()  # move back to 0 position
                 self.tpt.close()
+                self.led_port = self.led.port
             except:
                 pass
             return True
@@ -209,7 +222,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s.%(msecs)d %(levelname)s %(message)s',
                     datefmt='%H:%M:%S')
-    ms = mechascan_process()
+    ms = process()
     ms.connect_hardware()
     ms.disconnect_hardware()
     ms.connect_hardware_threaded()
