@@ -4,6 +4,10 @@ import sys
 import serial
 from serial import *
 import logging
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
+                    datefmt='%M:%S')
 log = logging.getLogger(__name__)
 
 def enumerate(check_lock = None):

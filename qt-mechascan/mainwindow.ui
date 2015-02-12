@@ -13,6 +13,12 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">font: 9pt &quot;Cantarell&quot;;
+
+
+</string>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
     <property name="leftMargin">
@@ -41,7 +47,7 @@
       <property name="minimumSize">
        <size>
         <width>170</width>
-        <height>400</height>
+        <height>431</height>
        </size>
       </property>
       <property name="maximumSize">
@@ -84,32 +90,44 @@
           <property name="sizeConstraint">
            <enum>QLayout::SetMinimumSize</enum>
           </property>
+          <property name="leftMargin">
+           <number>6</number>
+          </property>
           <item>
-           <widget class="QCheckBox" name="cb_use_cam">
+           <widget class="QCheckBox" name="check_cam">
             <property name="text">
              <string>Camera </string>
             </property>
             <property name="checked">
              <bool>true</bool>
             </property>
+            <property name="tristate">
+             <bool>true</bool>
+            </property>
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="cb_use_tpt">
+           <widget class="QCheckBox" name="check_tpt">
             <property name="text">
              <string>Use Transport</string>
             </property>
             <property name="checked">
              <bool>true</bool>
             </property>
+            <property name="tristate">
+             <bool>true</bool>
+            </property>
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="cb_use_led">
+           <widget class="QCheckBox" name="check_led">
             <property name="text">
              <string>Lighting</string>
             </property>
             <property name="checked">
+             <bool>true</bool>
+            </property>
+            <property name="tristate">
              <bool>true</bool>
             </property>
            </widget>
@@ -159,6 +177,9 @@ font: 11pt &quot;Carlito&quot;;</string>
              </item>
              <item row="4" column="1">
               <widget class="QSpinBox" name="sb_intensity">
+               <property name="wrapping">
+                <bool>true</bool>
+               </property>
                <property name="accelerated">
                 <bool>true</bool>
                </property>
@@ -179,25 +200,25 @@ font: 11pt &quot;Carlito&quot;;</string>
              </item>
              <item row="3" column="1">
               <widget class="QSpinBox" name="sb_settle_delay">
+               <property name="wrapping">
+                <bool>true</bool>
+               </property>
                <property name="accelerated">
                 <bool>true</bool>
                </property>
-              </widget>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_2">
-               <property name="font">
-                <font>
-                 <family>Cantarell</family>
-                </font>
+               <property name="maximum">
+                <number>1000</number>
                </property>
-               <property name="text">
-                <string>End</string>
+               <property name="value">
+                <number>200</number>
                </property>
               </widget>
              </item>
              <item row="1" column="1">
               <widget class="QSpinBox" name="sb_end_slot">
+               <property name="wrapping">
+                <bool>true</bool>
+               </property>
                <property name="accelerated">
                 <bool>true</bool>
                </property>
@@ -207,10 +228,32 @@ font: 11pt &quot;Carlito&quot;;</string>
                <property name="maximum">
                 <number>140</number>
                </property>
+               <property name="value">
+                <number>140</number>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_2">
+               <property name="font">
+                <font>
+                 <family>Cantarell</family>
+                 <pointsize>9</pointsize>
+                 <weight>50</weight>
+                 <italic>false</italic>
+                 <bold>false</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>End</string>
+               </property>
               </widget>
              </item>
              <item row="0" column="1">
               <widget class="QSpinBox" name="sb_start_slot">
+               <property name="wrapping">
+                <bool>true</bool>
+               </property>
                <property name="buttonSymbols">
                 <enum>QAbstractSpinBox::UpDownArrows</enum>
                </property>
@@ -220,49 +263,65 @@ font: 11pt &quot;Carlito&quot;;</string>
                <property name="minimum">
                 <number>1</number>
                </property>
-              </widget>
-             </item>
-             <item row="2" column="0">
-              <widget class="QLabel" name="label_5">
-               <property name="font">
-                <font>
-                 <pointsize>10</pointsize>
-                 <kerning>true</kerning>
-                </font>
-               </property>
-               <property name="text">
-                <string>Current</string>
-               </property>
-              </widget>
-             </item>
-             <item row="2" column="1">
-              <widget class="QSpinBox" name="sb_current_slot">
-               <property name="accelerated">
-                <bool>true</bool>
-               </property>
-               <property name="maximum">
-                <number>140</number>
-               </property>
                <property name="value">
                 <number>1</number>
                </property>
               </widget>
              </item>
+             <item row="5" column="0">
+              <spacer name="verticalSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
             </layout>
            </widget>
           </item>
           <item>
-           <spacer name="verticalSpacer">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
+           <layout class="QGridLayout" name="gridLayout_2">
+            <item row="0" column="1">
+             <widget class="QSpinBox" name="sb_current_slot">
+              <property name="wrapping">
+               <bool>true</bool>
+              </property>
+              <property name="accelerated">
+               <bool>true</bool>
+              </property>
+              <property name="keyboardTracking">
+               <bool>false</bool>
+              </property>
+              <property name="maximum">
+               <number>140</number>
+              </property>
+              <property name="value">
+               <number>1</number>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_5">
+              <property name="font">
+               <font>
+                <family>Cantarell</family>
+                <pointsize>9</pointsize>
+                <weight>50</weight>
+                <italic>false</italic>
+                <bold>false</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Slot</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </item>
@@ -321,7 +380,11 @@ font: 11pt &quot;Carlito&quot;;</string>
       </property>
       <property name="font">
        <font>
-        <pointsize>6</pointsize>
+        <family>Cantarell</family>
+        <pointsize>9</pointsize>
+        <weight>50</weight>
+        <italic>false</italic>
+        <bold>false</bold>
        </font>
       </property>
       <property name="features">
@@ -386,7 +449,11 @@ font: 11pt &quot;Carlito&quot;;</string>
            <widget class="QToolButton" name="tb_stop">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <family>Cantarell</family>
+              <pointsize>9</pointsize>
+              <weight>50</weight>
+              <italic>false</italic>
+              <bold>false</bold>
              </font>
             </property>
             <property name="text">
@@ -445,7 +512,7 @@ font: 11pt &quot;Carlito&quot;;</string>
      <x>0</x>
      <y>0</y>
      <width>690</width>
-     <height>27</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMechascan">

@@ -33,7 +33,7 @@ class EktaproDevice:
         self.is_busy = True
         self.max_brightness = 100
         self.brightness = 0
-        self.slide = None
+        self.slide = 0
         self.tray_size = 80 #this allows dummy scanning
         self.max_display_tray = 140
         self.info = None

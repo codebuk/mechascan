@@ -1,8 +1,11 @@
+# void	showMessage(const QString & message, int timeout = 0)
+# self.statusbar
 
 from PyQt5.QtCore import Qt, QDir, QRect, QTimer
 from PyQt5.QtGui import QImage, QPixmap, QTransform, QPainter
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem,
-        QMenu, QDialog, QFileDialog, QAction, QMessageBox, QFrame, QRubberBand, qApp)
+                             QMenu, QDialog, QFileDialog, QAction, QMessageBox, QFrame, QRubberBand, QLabel,
+                             QProgressBar, qApp)
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
 from gi.repository import GExiv2
 from functools import partial
@@ -10,14 +13,15 @@ import os
 import sys
 import editimage
 import preferences
+from fileimage import read_list, write_list
 import logging
 import mechascan_process
-#from mechascan_process import *
+from queue import Queue
 #ui generated code
 from main_window import *
 
 logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
+                    format="%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s",
                     datefmt='%M:%S')
 log = logging.getLogger(__name__)
 # shut up gphoto
@@ -28,20 +32,22 @@ logit.setLevel(logging.INFO)
 class mw(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super(mw, self).__init__()
-        log.debug("mw start")
-        self.msp = mechascan_process.process()
+        self.q = Queue()
+        self.msp = mechascan_process.process(self.q)
         s = self.msp.connect_hardware_threaded()
+
         self.setupUi(self)
         self.printer = QPrinter()
-        self.load_img = self.load_img_fit
-        self.reload_img = self.reload_auto
-        #self.open_new = parent.open_win
-        #self.exit = parent.closeAllWindows
+        self.load_img = self.load_img_fit  #default load type
         self.scene = QGraphicsScene()
         self.img_view = ImageView(self)
         self.img_view.setScene(self.scene)
-        #add widget to uic generated form
-        self.horizontalLayout.addWidget(self.img_view)
+        self.horizontalLayout.addWidget(self.img_view)  #add widget to uic generated form
+
+        self.reload_img = self.reload_auto
+
+        # self.open_new = self.parent.open_win
+        #self.exit = self.parent().closeAllWindows
 
         self.create_actions()
         self.create_menu()
@@ -52,36 +58,58 @@ class mw(QMainWindow, Ui_MainWindow):
         self.customContextMenuRequested.connect(self.showMenu)
 
         self.read_prefs()
-        self.read_list = ('bmp', 'gif', 'ico', 'jpg', 'jpeg', 'png', 'pbm',
-                 'pgm', 'ppm', 'xbm', 'xpm', 'svg', 'svgz', 'mng', 'wbmp',
-                 'tga', 'tif', 'tiff')
-        self.write_list = ('bmp', 'ico', 'jpg', 'jpeg', 'pbm', 'pgm', 'png',
-                 'wbmp', 'tif', 'tiff', 'ppm', 'xbm', 'xpm')
-        #self.read_list = parent.read_list
-        #self.write_list = parent.write_list
         self.pics_dir = os.path.expanduser('~/Pictures') or QDir.currentPath()
+        # we use a timer to process status updates from the process module
+        #we could have used signals but I did not want to make the module dependant on qt
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_gui)
+        self.timer.start(5)
         self.resize(1000, 600)
 
-
+    #scan functions
 
     def scan (self):
-        log.debug("scan start")
-        self.check_gui()
-        self.msp.scan()
+        self.msp_update_from_gui()
+        self.msp.scan_threaded()
 
     def scan_stop(self):
-        log.debug("scan stop")
+        self.msp.stop_scan()
 
     def tpt_next(self):
-        log.debug("scan next")
+        self.msp.next_slot()
+        log.debug(str(self.check_led.checkState()))
 
     def tpt_prev(self):
-        log.debug("scan prev")
+        self.msp.prev_slot()
 
-    def check_gui(self):
-        self.msp.led_enabled = self.cb_use_led.isChecked()
-        self.msp.cam_enabled = self.cb_use_cam.isChecked()
-        self.msp.tpt_enabled = self.cb_use_tpt.isChecked()
+    def tpt_slot_current(self, x):
+        self.msp.select_slot(x)
+
+    def update_gui(self):
+        s = ""
+        try:
+            s = self.q.get_nowait()
+
+        except:
+            pass
+        if s:
+            self.statusbar.showMessage(s, 1000)
+        self.check_led.setChecked(True)
+        # checkedState : int
+
+        # This property indicates the current checked state of the checkbox.
+
+    #Possible values: Qt.UnChecked - The checkbox is not checked (default). Qt.Checked - The checkbox is checked. Qt.PartiallyChecked - The checkbox is in a partially checked (or "mixed") state.
+
+    #The checked property also determines whether this property is Qt.Checked or Qt.UnChecked, and vice versa.
+    #self.check_led.checkedState() = self.msp.led_connected
+
+
+
+    def msp_update_from_gui(self):
+        self.msp.led_enabled = self.check_led.isChecked()
+        self.msp.cam_enabled = self.check_cam.isChecked()
+        self.msp.tpt_enabled = self.check_tpt.isChecked()
         self.msp.auto_home_enabled = self.cb_auto_home.isChecked()
         self.msp.slot_start = self.sb_start_slot.value()
         self.msp.slot_end = self.sb_end_slot.value()
@@ -120,6 +148,23 @@ class mw(QMainWindow, Ui_MainWindow):
         self.props_act.triggered.connect(self.get_props)
         self.help_act.triggered.connect(self.help_page)
         self.about_act.triggered.connect(self.about_cm)
+        self.sb_current_slot.valueChanged.connect(self.tpt_slot_current)
+
+        self.progress = QProgressBar(self)
+        self.progress.setMaximumSize(170, 19)
+        self.statusbar.addPermanentWidget(self.progress)
+        self.lbl_led_status = QLabel(self)
+        self.statusbar.addWidget(self.lbl_led_status)
+        self.lbl_led_status.setText("Led: Not connected")
+        self.lbl_tpt_status = QLabel(self)
+        self.statusbar.addWidget(self.lbl_tpt_status)
+        self.lbl_tpt_status.setText("Transport: Not connected")
+        self.lbl_cam_status = QLabel(self)
+        self.statusbar.addWidget(self.lbl_cam_status)
+        self.lbl_cam_status.setText("Camera: Not connected")
+        self.lbl_slot_status = QLabel(self)
+        self.statusbar.addWidget(self.lbl_slot_status)
+        self.lbl_slot_status.setText("Slot: N/A")
 
 
     def create_menu(self):
@@ -200,7 +245,7 @@ class mw(QMainWindow, Ui_MainWindow):
     def open(self, new_win=False):
         fname = QFileDialog.getOpenFileName(self, 'Open File', self.pics_dir)[0]
         if fname:
-            if fname.lower().endswith(self.read_list):
+            if fname.lower().endswith(read_list()):
                 if new_win:
                     self.open_new(fname)
                 else:
@@ -220,7 +265,7 @@ class mw(QMainWindow, Ui_MainWindow):
         """Create a list of readable images from the current directory."""
         filelist = os.listdir(dirname)
         self.filelist = [os.path.join(dirname, fname) for fname in filelist
-                        if fname.lower().endswith(self.read_list)]
+                         if fname.lower().endswith(read_list())]
         self.filelist.sort()
         self.last_file = len(self.filelist) - 1
 
@@ -351,7 +396,7 @@ class mw(QMainWindow, Ui_MainWindow):
     def save_img(self):
         fname = QFileDialog.getSaveFileName(self, 'Save your image', self.fname)[0]
         if fname:
-            if fname.lower().endswith(self.write_list):
+            if fname.lower().endswith(write_list()):
                 keep_exif = QMessageBox.question(self, 'Save exif data',
                         'Do you want to save the picture metadata?', QMessageBox.Yes |
                         QMessageBox.No, QMessageBox.Yes)
@@ -397,7 +442,7 @@ class mw(QMainWindow, Ui_MainWindow):
 
     def about_cm(self):
         about_message = 'Version: 0.0.0\nAuthor: Dan Tyrrell\nwww.breager.com'
-        QMessageBox.about(self, 'About Mechascan', about_message)
+        QMessageBox.about(self, 'About Mechaslide', about_message)
 
 class ImageView(QGraphicsView):
     def __init__(self, parent=None):
@@ -458,13 +503,7 @@ class ImageView(QGraphicsView):
 class ImageViewer(QApplication):
     def __init__(self, args):
         QApplication.__init__(self, args)
-
         self.args = args
-        self.read_list = ('bmp', 'gif', 'ico', 'jpg', 'jpeg', 'png', 'pbm',
-                'pgm', 'ppm', 'xbm', 'xpm', 'svg', 'svgz', 'mng', 'wbmp',
-                'tga', 'tif', 'tiff')
-        self.write_list = ('bmp', 'ico', 'jpg', 'jpeg', 'pbm', 'pgm', 'png',
-                'wbmp', 'tif', 'tiff', 'ppm', 'xbm', 'xpm')
 
     def startup(self):
         if len(self.args) > 1:
@@ -475,16 +514,16 @@ class ImageViewer(QApplication):
 
     def open_files(self, files):
         for fname in files:
-            if fname.lower().endswith(self.read_list):
+            if fname.lower().endswith(read_list()):
                 self.open_win(fname)
 
     def open_win(self, fname):
-        win = mw()
-        win.show()
+        self.win = mw()
+        self.win.show()
         if fname:
-            win.open_img(fname)
+            self.win.open_img(fname)
         else:
-            win.open()
+            self.win.open()
 
 if __name__ == '__main__':
     app = ImageViewer(sys.argv)
