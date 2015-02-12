@@ -94,62 +94,6 @@
            <number>6</number>
           </property>
           <item>
-           <widget class="QCheckBox" name="check_cam">
-            <property name="text">
-             <string>Camera </string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-            <property name="tristate">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="check_tpt">
-            <property name="text">
-             <string>Use Transport</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-            <property name="tristate">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="check_led">
-            <property name="text">
-             <string>Lighting</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-            <property name="tristate">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="cb_auto_home">
-            <property name="styleSheet">
-             <string notr="true">font: 9pt &quot;Cqlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(255, 255, 255, 255))rgb(255, 255, 255)antarell&quot;;
-font: 11pt &quot;Carlito&quot;;</string>
-            </property>
-            <property name="text">
-             <string>Return to home</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-            <property name="tristate">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="QWidget" name="widget_2" native="true"/>
           </item>
           <item>
@@ -268,7 +212,7 @@ font: 11pt &quot;Carlito&quot;;</string>
                </property>
               </widget>
              </item>
-             <item row="5" column="0">
+             <item row="6" column="0">
               <spacer name="verticalSpacer">
                <property name="orientation">
                 <enum>Qt::Vertical</enum>
@@ -280,6 +224,62 @@ font: 11pt &quot;Carlito&quot;;</string>
                 </size>
                </property>
               </spacer>
+             </item>
+             <item row="8" column="0" colspan="2">
+              <widget class="QCheckBox" name="check_tpt">
+               <property name="text">
+                <string>Use Transport</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+               <property name="tristate">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="9" column="0" colspan="2">
+              <widget class="QCheckBox" name="check_led">
+               <property name="text">
+                <string>Use Lamp</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+               <property name="tristate">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="0" colspan="2">
+              <widget class="QCheckBox" name="check_cam">
+               <property name="text">
+                <string>Use Camera </string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+               <property name="tristate">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="0" colspan="2">
+              <widget class="QCheckBox" name="cb_auto_home">
+               <property name="styleSheet">
+                <string notr="true">font: 9pt &quot;Cqlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(255, 255, 255, 255))rgb(255, 255, 255)antarell&quot;;
+font: 11pt &quot;Carlito&quot;;</string>
+               </property>
+               <property name="text">
+                <string>Return to home</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+               <property name="tristate">
+                <bool>false</bool>
+               </property>
+              </widget>
              </item>
             </layout>
            </widget>
@@ -317,11 +317,31 @@ font: 11pt &quot;Carlito&quot;;</string>
                </font>
               </property>
               <property name="text">
-               <string>Slot</string>
+               <string>Goto Slot</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0" colspan="2">
+             <widget class="QPushButton" name="pushButton">
+              <property name="text">
+               <string>Lamp</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
               </property>
              </widget>
             </item>
            </layout>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_2">
+            <property name="text">
+             <string>Capture</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>

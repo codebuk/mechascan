@@ -47,12 +47,13 @@ class GardasoftDevice:
                     log.info ("Check for device at: " + str(speeds) + " baud. Port: " + port)
                     self.ser.flush()
                     self.ser.read(2000) #clear any junk
-                if (self.clear_error()):
-                    self.ser.timeout = .1 #tried .01 but random errors
-                    self.ver = self.version()
-                    self.port = port
-                    self.connected = 1
-                    return 1
+                    self.connected = 1  # allow clear error to access port
+                    if (self.clear_error()):
+                        self.ser.timeout = .1  # tried .01 but random errors
+                        self.ver = self.version()
+                        self.port = port
+                        self.connected = 1
+                        return 1
                 self.connected = 0
                 self.ser.close()
         except serial.SerialException:
