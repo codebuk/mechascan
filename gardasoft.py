@@ -15,6 +15,7 @@ class GardasoftDevice:
 
     def __init__(self):
         log.debug('gardasoft device init')
+        self.port = "Not connected"
         self.connected = 0
 
     def open(self, port = None):
@@ -46,11 +47,11 @@ class GardasoftDevice:
                     log.info ("Check for device at: " + str(speeds) + " baud. Port: " + port)
                     self.ser.flush()
                     self.ser.read(2000) #clear any junk
-                    self.port = port
-                    self.connected = 1
                 if (self.clear_error()):
                     self.ser.timeout = .1 #tried .01 but random errors
                     self.ver = self.version()
+                    self.port = port
+                    self.connected = 1
                     return 1
                 self.connected = 0
                 self.ser.close()
@@ -74,8 +75,8 @@ class GardasoftDevice:
                 raise
 
     def close(self):
-        self.port = "Not Connected"
         self.connected = 0
+        self.port = "Not Connected"
         self.all_off()
         self.ser.close()
         
