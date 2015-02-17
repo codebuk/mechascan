@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>690</width>
-    <height>625</height>
+    <width>741</width>
+    <height>754</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,523 +15,31 @@
   </property>
   <property name="styleSheet">
    <string notr="true">font: 9pt &quot;Cantarell&quot;;
+QGroupBox {
+    border: 2px solid gray;
+    border-radius: 5px;
+    margin-top: 1ex; /* leave space at the top for the title */
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center; /* position at the top center */
+    padding: 0 3px;
+    
+}
+
 
 
 </string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout">
-    <property name="leftMargin">
-     <number>0</number>
-    </property>
-    <property name="topMargin">
-     <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>0</number>
-    </property>
-    <property name="bottomMargin">
-     <number>0</number>
-    </property>
-    <property name="spacing">
-     <number>0</number>
-    </property>
-    <item row="0" column="0">
-     <widget class="QDockWidget" name="dock_hardware">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>170</width>
-        <height>431</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>170</width>
-        <height>524287</height>
-       </size>
-      </property>
-      <property name="floating">
-       <bool>false</bool>
-      </property>
-      <property name="features">
-       <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
-      </property>
-      <property name="allowedAreas">
-       <set>Qt::AllDockWidgetAreas</set>
-      </property>
-      <widget class="QWidget" name="dock_hardware_2">
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <property name="spacing">
-         <number>0</number>
-        </property>
-        <property name="leftMargin">
-         <number>0</number>
-        </property>
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <property name="rightMargin">
-         <number>0</number>
-        </property>
-        <property name="bottomMargin">
-         <number>0</number>
-        </property>
-        <item>
-         <layout class="QVBoxLayout" name="vl_hardware">
-          <property name="spacing">
-           <number>0</number>
-          </property>
-          <property name="sizeConstraint">
-           <enum>QLayout::SetMinimumSize</enum>
-          </property>
-          <property name="leftMargin">
-           <number>6</number>
-          </property>
-          <item>
-           <widget class="QWidget" name="widget_2" native="true"/>
-          </item>
-          <item>
-           <widget class="QWidget" name="widget" native="true">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>90</height>
-             </size>
-            </property>
-            <layout class="QGridLayout" name="gridLayout_3">
-             <item row="4" column="0">
-              <widget class="QLabel" name="label_4">
-               <property name="text">
-                <string>Intensity</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="0">
-              <widget class="QLabel" name="label">
-               <property name="text">
-                <string>Start</string>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="1">
-              <widget class="QSpinBox" name="sb_intensity">
-               <property name="wrapping">
-                <bool>true</bool>
-               </property>
-               <property name="accelerated">
-                <bool>true</bool>
-               </property>
-               <property name="maximum">
-                <number>100</number>
-               </property>
-               <property name="value">
-                <number>100</number>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="label_3">
-               <property name="text">
-                <string>Delay( ms)</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="1">
-              <widget class="QSpinBox" name="sb_settle_delay">
-               <property name="wrapping">
-                <bool>true</bool>
-               </property>
-               <property name="accelerated">
-                <bool>true</bool>
-               </property>
-               <property name="maximum">
-                <number>1000</number>
-               </property>
-               <property name="value">
-                <number>200</number>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1">
-              <widget class="QSpinBox" name="sb_end_slot">
-               <property name="wrapping">
-                <bool>true</bool>
-               </property>
-               <property name="accelerated">
-                <bool>true</bool>
-               </property>
-               <property name="minimum">
-                <number>1</number>
-               </property>
-               <property name="maximum">
-                <number>140</number>
-               </property>
-               <property name="value">
-                <number>140</number>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_2">
-               <property name="font">
-                <font>
-                 <family>Cantarell</family>
-                 <pointsize>9</pointsize>
-                 <weight>50</weight>
-                 <italic>false</italic>
-                 <bold>false</bold>
-                </font>
-               </property>
-               <property name="text">
-                <string>End</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QSpinBox" name="sb_start_slot">
-               <property name="wrapping">
-                <bool>true</bool>
-               </property>
-               <property name="buttonSymbols">
-                <enum>QAbstractSpinBox::UpDownArrows</enum>
-               </property>
-               <property name="accelerated">
-                <bool>true</bool>
-               </property>
-               <property name="minimum">
-                <number>1</number>
-               </property>
-               <property name="value">
-                <number>1</number>
-               </property>
-              </widget>
-             </item>
-             <item row="6" column="0">
-              <spacer name="verticalSpacer">
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item row="8" column="0" colspan="2">
-              <widget class="QCheckBox" name="check_tpt">
-               <property name="text">
-                <string>Use Transport</string>
-               </property>
-               <property name="checked">
-                <bool>true</bool>
-               </property>
-               <property name="tristate">
-                <bool>false</bool>
-               </property>
-              </widget>
-             </item>
-             <item row="9" column="0" colspan="2">
-              <widget class="QCheckBox" name="check_led">
-               <property name="text">
-                <string>Use Lamp</string>
-               </property>
-               <property name="checked">
-                <bool>true</bool>
-               </property>
-               <property name="tristate">
-                <bool>false</bool>
-               </property>
-              </widget>
-             </item>
-             <item row="7" column="0" colspan="2">
-              <widget class="QCheckBox" name="check_cam">
-               <property name="text">
-                <string>Use Camera </string>
-               </property>
-               <property name="checked">
-                <bool>true</bool>
-               </property>
-               <property name="tristate">
-                <bool>false</bool>
-               </property>
-              </widget>
-             </item>
-             <item row="5" column="0" colspan="2">
-              <widget class="QCheckBox" name="cb_auto_home">
-               <property name="styleSheet">
-                <string notr="true">font: 9pt &quot;Cqlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(255, 255, 255, 255))rgb(255, 255, 255)antarell&quot;;
-font: 11pt &quot;Carlito&quot;;</string>
-               </property>
-               <property name="text">
-                <string>Return to home</string>
-               </property>
-               <property name="checked">
-                <bool>true</bool>
-               </property>
-               <property name="tristate">
-                <bool>false</bool>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item>
-           <layout class="QGridLayout" name="gridLayout_2">
-            <item row="0" column="1">
-             <widget class="QSpinBox" name="sb_current_slot">
-              <property name="wrapping">
-               <bool>true</bool>
-              </property>
-              <property name="accelerated">
-               <bool>true</bool>
-              </property>
-              <property name="keyboardTracking">
-               <bool>false</bool>
-              </property>
-              <property name="maximum">
-               <number>140</number>
-              </property>
-              <property name="value">
-               <number>1</number>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_5">
-              <property name="font">
-               <font>
-                <family>Cantarell</family>
-                <pointsize>9</pointsize>
-                <weight>50</weight>
-                <italic>false</italic>
-                <bold>false</bold>
-               </font>
-              </property>
-              <property name="text">
-               <string>Goto Slot</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0" colspan="2">
-             <widget class="QPushButton" name="pushButton">
-              <property name="text">
-               <string>Lamp</string>
-              </property>
-              <property name="checkable">
-               <bool>true</bool>
-              </property>
-              <property name="checked">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_2">
-            <property name="text">
-             <string>Capture</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-     </widget>
-    </item>
-    <item row="0" column="1" rowspan="3">
-     <widget class="QDockWidget" name="dockWidget">
-      <property name="features">
-       <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable|QDockWidget::DockWidgetVerticalTitleBar</set>
-      </property>
-      <property name="allowedAreas">
-       <set>Qt::AllDockWidgetAreas</set>
-      </property>
-      <widget class="QWidget" name="dock_image">
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <property name="spacing">
-         <number>0</number>
-        </property>
-        <property name="leftMargin">
-         <number>0</number>
-        </property>
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <property name="rightMargin">
-         <number>0</number>
-        </property>
-        <property name="bottomMargin">
-         <number>0</number>
-        </property>
-       </layout>
-      </widget>
-     </widget>
-    </item>
-    <item row="1" column="0" rowspan="2">
-     <widget class="QDockWidget" name="dock_control">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>170</width>
-        <height>70</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>170</width>
-        <height>70</height>
-       </size>
-      </property>
-      <property name="font">
-       <font>
-        <family>Cantarell</family>
-        <pointsize>9</pointsize>
-        <weight>50</weight>
-        <italic>false</italic>
-        <bold>false</bold>
-       </font>
-      </property>
-      <property name="features">
-       <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
-      </property>
-      <property name="windowTitle">
-       <string notr="true"/>
-      </property>
-      <widget class="QWidget" name="dockWidgetContents_control">
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_control">
-          <property name="spacing">
-           <number>0</number>
-          </property>
-          <property name="sizeConstraint">
-           <enum>QLayout::SetMinimumSize</enum>
-          </property>
-          <item>
-           <spacer name="horizontalSpacer_5">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QToolButton" name="tb_prev">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="text">
-             <string>...</string>
-            </property>
-            <property name="icon">
-             <iconset resource="qt_resources.qrc">
-              <normaloff>:/icons/resources/ic_navigate_before_48px.svg</normaloff>:/icons/resources/ic_navigate_before_48px.svg</iconset>
-            </property>
-            <property name="popupMode">
-             <enum>QToolButton::InstantPopup</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QToolButton" name="tb_play">
-            <property name="text">
-             <string>...</string>
-            </property>
-            <property name="icon">
-             <iconset resource="qt_resources.qrc">
-              <normaloff>:/icons/resources/ic_play_arrow_48px.svg</normaloff>
-              <normalon>:/icons/resources/ic_pause_48px.svg</normalon>:/icons/resources/ic_play_arrow_48px.svg</iconset>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QToolButton" name="tb_stop">
-            <property name="font">
-             <font>
-              <family>Cantarell</family>
-              <pointsize>9</pointsize>
-              <weight>50</weight>
-              <italic>false</italic>
-              <bold>false</bold>
-             </font>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-            <property name="icon">
-             <iconset resource="qt_resources.qrc">
-              <normaloff>:/icons/resources/ic_stop_48px.svg</normaloff>:/icons/resources/ic_stop_48px.svg</iconset>
-            </property>
-            <property name="popupMode">
-             <enum>QToolButton::DelayedPopup</enum>
-            </property>
-            <property name="toolButtonStyle">
-             <enum>Qt::ToolButtonIconOnly</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QToolButton" name="tb_next">
-            <property name="text">
-             <string>...</string>
-            </property>
-            <property name="icon">
-             <iconset resource="qt_resources.qrc">
-              <normaloff>:/icons/resources/ic_navigate_next_48px.svg</normaloff>:/icons/resources/ic_navigate_next_48px.svg</iconset>
-            </property>
-            <property name="shortcut">
-             <string>N</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer_6">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-     </widget>
-    </item>
-   </layout>
+   <layout class="QHBoxLayout" name="horizontalLayout"/>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>690</width>
+     <width>741</width>
      <height>23</height>
     </rect>
    </property>
@@ -584,6 +92,546 @@ font: 11pt &quot;Carlito&quot;;</string>
    <addaction name="menu_Help"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QDockWidget" name="dock_control">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>170</width>
+     <height>70</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>170</width>
+     <height>70</height>
+    </size>
+   </property>
+   <property name="font">
+    <font>
+     <family>Cantarell</family>
+     <pointsize>9</pointsize>
+     <weight>50</weight>
+     <italic>false</italic>
+     <bold>false</bold>
+    </font>
+   </property>
+   <property name="floating">
+    <bool>false</bool>
+   </property>
+   <property name="features">
+    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
+   </property>
+   <property name="windowTitle">
+    <string notr="true"/>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_control">
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_control">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="sizeConstraint">
+        <enum>QLayout::SetMinimumSize</enum>
+       </property>
+       <item>
+        <spacer name="horizontalSpacer_5">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QToolButton" name="tb_prev">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="text">
+          <string>...</string>
+         </property>
+         <property name="icon">
+          <iconset resource="qt_resources.qrc">
+           <normaloff>:/icons/resources/ic_navigate_before_48px.svg</normaloff>:/icons/resources/ic_navigate_before_48px.svg</iconset>
+         </property>
+         <property name="popupMode">
+          <enum>QToolButton::InstantPopup</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QToolButton" name="tb_play">
+         <property name="text">
+          <string>...</string>
+         </property>
+         <property name="icon">
+          <iconset resource="qt_resources.qrc">
+           <normaloff>:/icons/resources/ic_play_arrow_48px.svg</normaloff>
+           <normalon>:/icons/resources/ic_pause_48px.svg</normalon>:/icons/resources/ic_play_arrow_48px.svg</iconset>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QToolButton" name="tb_stop">
+         <property name="font">
+          <font>
+           <family>Cantarell</family>
+           <pointsize>9</pointsize>
+           <weight>50</weight>
+           <italic>false</italic>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="qt_resources.qrc">
+           <normaloff>:/icons/resources/ic_stop_48px.svg</normaloff>:/icons/resources/ic_stop_48px.svg</iconset>
+         </property>
+         <property name="popupMode">
+          <enum>QToolButton::DelayedPopup</enum>
+         </property>
+         <property name="toolButtonStyle">
+          <enum>Qt::ToolButtonIconOnly</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QToolButton" name="tb_next">
+         <property name="text">
+          <string>...</string>
+         </property>
+         <property name="icon">
+          <iconset resource="qt_resources.qrc">
+           <normaloff>:/icons/resources/ic_navigate_next_48px.svg</normaloff>:/icons/resources/ic_navigate_next_48px.svg</iconset>
+         </property>
+         <property name="shortcut">
+          <string>N</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_6">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="dock_hardware">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>170</width>
+     <height>600</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>170</width>
+     <height>524287</height>
+    </size>
+   </property>
+   <property name="floating">
+    <bool>false</bool>
+   </property>
+   <property name="features">
+    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::BottomDockWidgetArea|Qt::RightDockWidgetArea|Qt::TopDockWidgetArea</set>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dock_hardware_2">
+    <widget class="QWidget" name="layoutWidget">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>169</width>
+       <height>525</height>
+      </rect>
+     </property>
+     <layout class="QVBoxLayout" name="vl_hardware">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <property name="sizeConstraint">
+       <enum>QLayout::SetMinimumSize</enum>
+      </property>
+      <property name="leftMargin">
+       <number>6</number>
+      </property>
+      <item>
+       <widget class="QWidget" name="widget" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>90</height>
+         </size>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="8" column="0" colspan="2">
+          <widget class="QGroupBox" name="groupBox">
+           <property name="styleSheet">
+            <string notr="true">QGroupBox {
+    border: 2px solid gray;
+    border-radius: 5px;
+    margin-top: 1ex; /* leave space at the top for the title */
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center; /* position at the top center */
+    padding: 0 3px;
+    
+}
+</string>
+           </property>
+           <property name="title">
+            <string>Transport</string>
+           </property>
+           <property name="flat">
+            <bool>false</bool>
+           </property>
+           <property name="checkable">
+            <bool>false</bool>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_4">
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_5">
+              <property name="font">
+               <font>
+                <family>Cantarell</family>
+                <pointsize>9</pointsize>
+                <weight>50</weight>
+                <italic>false</italic>
+                <bold>false</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Goto Slot</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0" colspan="2">
+             <widget class="QCheckBox" name="check_tpt">
+              <property name="text">
+               <string>Use Transport</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+              <property name="tristate">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="0" colspan="2">
+             <widget class="QPushButton" name="pushButton_tpt_reset">
+              <property name="text">
+               <string>Reset</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0" colspan="2">
+             <widget class="QPushButton" name="pushButton_tpt_home">
+              <property name="text">
+               <string>Home</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QSpinBox" name="sb_current_slot">
+              <property name="wrapping">
+               <bool>true</bool>
+              </property>
+              <property name="accelerated">
+               <bool>true</bool>
+              </property>
+              <property name="keyboardTracking">
+               <bool>false</bool>
+              </property>
+              <property name="maximum">
+               <number>140</number>
+              </property>
+              <property name="value">
+               <number>1</number>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0" colspan="2">
+             <widget class="QCheckBox" name="cb_auto_home">
+              <property name="styleSheet">
+               <string notr="true">font: 9pt &quot;Cqlineargradient(spread:pad, x1:0, y1:0, x2:1, y</string>
+              </property>
+              <property name="text">
+               <string>Return to home</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+              <property name="tristate">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="9" column="0" colspan="2">
+          <widget class="QGroupBox" name="groupBox_2">
+           <property name="styleSheet">
+            <string notr="true">QGroupBox {
+    border: 2px solid gray;
+    border-radius: 5px;
+    margin-top: 1ex; /* leave space at the top for the title */
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center; /* position at the top center */
+    padding: 0 3px;
+    
+}
+</string>
+           </property>
+           <property name="title">
+            <string>Camera</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_5">
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_3">
+              <property name="text">
+               <string>Delay( ms)</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QSpinBox" name="sb_settle_delay">
+              <property name="wrapping">
+               <bool>true</bool>
+              </property>
+              <property name="accelerated">
+               <bool>true</bool>
+              </property>
+              <property name="maximum">
+               <number>1000</number>
+              </property>
+              <property name="value">
+               <number>200</number>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0" colspan="2">
+             <widget class="QCheckBox" name="check_cam">
+              <property name="text">
+               <string>Use Camera </string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+              <property name="tristate">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0" colspan="2">
+             <widget class="QPushButton" name="pushButton_capture">
+              <property name="text">
+               <string>&amp;Capture</string>
+              </property>
+              <property name="shortcut">
+               <string>Shift+C</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="10" column="0" colspan="2">
+          <widget class="QGroupBox" name="groupBox_3">
+           <property name="styleSheet">
+            <string notr="true">QGroupBox {
+    border: 2px solid gray;
+    border-radius: 5px;
+    margin-top: 1ex; /* leave space at the top for the title */
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center; /* position at the top center */
+    padding: 0 3px;
+    
+}
+</string>
+           </property>
+           <property name="title">
+            <string>Lamp</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_6">
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_4">
+              <property name="text">
+               <string>Intensity</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QSpinBox" name="sb_intensity">
+              <property name="wrapping">
+               <bool>true</bool>
+              </property>
+              <property name="accelerated">
+               <bool>true</bool>
+              </property>
+              <property name="maximum">
+               <number>100</number>
+              </property>
+              <property name="value">
+               <number>100</number>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0" colspan="2">
+             <widget class="QPushButton" name="pushButton_lamp">
+              <property name="text">
+               <string>Lamp</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0" colspan="2">
+             <widget class="QCheckBox" name="check_led">
+              <property name="text">
+               <string>Use Lamp</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+              <property name="tristate">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="3" column="0" colspan="2">
+          <widget class="QGroupBox" name="groupBox_4">
+           <property name="styleSheet">
+            <string notr="true">QGroupBox {
+    border: 2px solid gray;
+    border-radius: 5px;
+    margin-top: 1ex; /* leave space at the top for the title */
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center; /* position at the top center */
+    padding: 0 3px;
+    
+}
+</string>
+           </property>
+           <property name="title">
+            <string>Scan range</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout">
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_2">
+              <property name="text">
+               <string>End</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label">
+              <property name="text">
+               <string>Start</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QSpinBox" name="sb_start_slot">
+              <property name="wrapping">
+               <bool>true</bool>
+              </property>
+              <property name="buttonSymbols">
+               <enum>QAbstractSpinBox::UpDownArrows</enum>
+              </property>
+              <property name="accelerated">
+               <bool>true</bool>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="value">
+               <number>1</number>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QSpinBox" name="sb_end_slot">
+              <property name="wrapping">
+               <bool>true</bool>
+              </property>
+              <property name="accelerated">
+               <bool>true</bool>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>140</number>
+              </property>
+              <property name="value">
+               <number>140</number>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </widget>
+  </widget>
   <action name="open_act">
    <property name="text">
     <string>&amp;Open</string>

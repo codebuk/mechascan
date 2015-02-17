@@ -20,6 +20,28 @@
    
    Class for the ektapro slide projector devices.
    One projector per serial port is supported.
+   33:40.342-ektapro-MainThread-DEBUG
+ Model: Kodak Ektapro model: 5000 Id: 0 Version: 2.31
+ Projector Busy: 1
+ At zero: 0
+ Slide lift motor error: 0
+ Tray transport motor error: 1
+ Command Error: 0
+ Buffer overflow: 1
+ Overrun error: 0
+ Framing error: 0
+ Tray size: 80
+ Active lamp: L1
+ Standby: Off
+ Flag 1: 0
+ Flag 2: 0
+ Power frequency: 50Hz
+ Autofocus: Off
+ Autozero: Off
+ Low lamp mode: Off
+
+
+
    
 """
 from enumerate_serial import *
@@ -166,7 +188,7 @@ class EktaproDevice:
         if (self.connected):
             if (len(s) != 3) \
                     or not (ord(s[0]) % 8 == 6) \
-                    or not (ord(s[1]) / 16 == 10):
+                    or not (ord(s[1]) // 16 == 10):
                 log.error("get_status invalid response")  #could raise error here?
             else:
                 self.slide = int(str(ord(s[2])))
@@ -270,7 +292,7 @@ class EktaproDevice:
     def comms(self, command, read_bytes=0, pre_timeout=0, post_timeout=0, debug=True):
         rec = ""
         if (debug):
-            log.debug("Send: " + str(command) + " hex: " + repr(command.toData()) + " pre/post timouts: " + str(
+            log.debug("Send: " + str(command) + " hex: " + repr(command.toData()) + " pre/post timeouts: " + str(
                 pre_timeout) + " - " + str(post_timeout))
         self.busy(pre_timeout, desc="pre timeout ")
         if (self.connected):
@@ -341,8 +363,8 @@ class EktaproCommand:
             self.id = args[0]
             self.initalized = False
         elif len(args) == 3:
-            self.id = args[0] / 8
-            self.mode = args[0] % 8 / 2
+            self.id = args[0] // 8
+            self.mode = args[0] % 8 // 2
             self.arg1 = args[1]
             self.arg2 = args[2]
             self.initalized = True
@@ -359,7 +381,7 @@ class EktaproCommand:
 
     def constructParameterCommand(self, command, param):
         self.mode = 0
-        self.arg1 = command * 16 + param / 128 * 2
+        self.arg1 = command * 16 + param // 128 * 2
         self.arg2 = param % 128 * 2
         self.initalized = True
 
@@ -522,16 +544,16 @@ class EktaproCommand:
         }
 
         parametersettings = {
-            0: "Random Access - Slide " + str(self.arg1 % 16 * 64 + self.arg2 / 2),
+            0: "Random Access - Slide " + str(self.arg1 % 16 * 64 + self.arg2 // 2),
             1: "SetBrightness - " + str(self.arg1 % 16 * 64 + self.arg2 / 2),
-            3: "Group Address - " + str(self.arg2 / 2),
-            6: "Fade up/down - " + upDown.get(self.arg1 % 16 / 2, "?") + " - "
+            3: "Group Address - " + str(self.arg2 // 2),
+            6: "Fade up/down - " + upDown.get(self.arg1 % 16 // 2, "?") + " - "
                + str(self.arg2 / 2),
-            7: "SetLowerLimit for Fading - " + str(self.arg1 % 16 * 64 + self.arg2 / 2),
-            8: "SetUpperLimit for Fading - " + str(self.arg1 % 16 * 64 + self.arg2 / 2)
+            7: "SetLowerLimit for Fading - " + str(self.arg1 % 16 * 64 + self.arg2 // 2),
+            8: "SetUpperLimit for Fading - " + str(self.arg1 % 16 * 64 + self.arg2 // 2)
         }
 
-        return parametersettings.get(self.arg1 / 16, "Unknown parameter")
+        return parametersettings.get(self.arg1 // 16, "Unknown parameter")
 
     def setResetModeToString(self):
         setresetstring = {
@@ -548,7 +570,7 @@ class EktaproCommand:
             2: "Set (on)"
         }
 
-        return setresetstring.get(self.arg1 / 4, "Unknown command") \
+        return setresetstring.get(self.arg1 // 4, "Unknown command") \
                + onOff.get(self.arg1 % 4, "?")
 
     def directModeToString(self):
@@ -566,10 +588,10 @@ class EktaproCommand:
             15: "Stop fading"
         }
 
-        if self.arg1 / 128 == 1:
+        if self.arg1 // 128 == 1:
             return "Direct User Mode"
 
-        return directModeString.get(self.arg1 / 4, "Unknown command")
+        return directModeString.get(self.arg1 // 4, "Unknown command")
 
     def statusRequestToString(self):
         statusRequests = {
@@ -578,7 +600,7 @@ class EktaproCommand:
             12: "System status",
             13: "System return"
         }
-        return statusRequests.get(self.arg1 / 16, "Unknown request")
+        return statusRequests.get(self.arg1 // 16, "Unknown request")
 
 
 if __name__ == "__main__":

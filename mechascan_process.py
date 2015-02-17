@@ -62,10 +62,13 @@ class process:
         with self.lock.acquire_timeout(0):
             try:
                 if self.led_enabled and not self.led.connected:
+                    self.queue.put("Lamp not connected")
                     raise "Lamp not connected"
                 if self.tpt_enabled and not self.tpt.connected:
+                    self.queue.put("Transport not connected")
                     raise "Transport not connected"
                 if self.cam_enabled and not self.cam.connected:
+                    self.queue.put("Camera not connected")
                     raise "Camera  not connected"
 
                 if not self.led_enabled: self.led.continuous(1, 0)
@@ -83,27 +86,25 @@ class process:
                             log.info("settle delay (ms) :" + str(self.settle_delay))
                             time.sleep(self.settle_delay / 1000)
                     if self.led_enabled: self.led.continuous(1, self.led_flash)
-                    if (self.cam_enabled == True):
-                        try:
-                            self.cam.open()
-                        except:
-                            pass
-                        try:
-                            ok = self.cam.capture()
-                        except:
-                            pass
+                    if (self.cam_enabled == True): cam_capture()
                     if self.led_enabled: self.led.continuous(1, self.led_rest)
                     if self.tpt_enabled: self.tpt.next(post_timeout=0)
-                    if (ok and self.enable_cam.get()):
-                        f = "/home/dan/Documents/pics/" + str(slide) + ".jpg"
-                        log.debug("Capture complete - Now save" + f)
-                        self.cam.save(f)
-                        self.cam.close()
+                    if self.enable_cam.get():
+                        file = "/home/dan/Documents/pics/" + str(slide) + ".jpg"
+                        log.debug("Capture complete - Now save" + file)
+                        cam_save(file)
                     log.debug("Scan time: " + str(time.time() - ts) + "for slot: " + str(slide))
             except:
-
-                return
+                pass
             self.stop_scan()
+
+    def cam_capture(self):
+        self.cam.open()
+        self.ok = self.cam.capture()
+
+    def cam_save(self, file):
+        self.cam.save(file)
+        self.cam.close()
 
     def connect_hardware (self):
         with self.lock.acquire_timeout(0):
@@ -123,6 +124,9 @@ class process:
             self.tpt.reset()
             self.tpt_port = self.tpt.port
             self.tpt_connected = self.tpt.connected
+
+            self.cam_port = self.cam.port
+            self.cam_connected = self.cam.connected
 
 
 
@@ -149,6 +153,13 @@ class process:
                 pass
             return True
 
+    def led_on(self):
+        with self.lock.acquire_timeout(0):
+            self.led.continuous(1, self.led_flash)
+
+    def led_off(self):
+        with self.lock.acquire_timeout(0):
+            self.led.continuous(1, 0)
 
     def capture_delay(self, delay):
         try:
@@ -197,9 +208,18 @@ class process:
         with self.lock.acquire_timeout(0):
             self.tpt.select(slot)
 
+    def get_slot(self):
+        with self.lock.acquire_timeout(0):
+            return self.tpt.slide
+
     def home_slot(self):
         with self.lock.acquire_timeout(0):
             self.tpt.select(0)
+
+    def tpt_reset(self):
+        with self.lock.acquire_timeout(0):
+            self.tpt.reset()
+
 
     def next_slot(self):
         with self.lock.acquire_timeout(0):

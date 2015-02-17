@@ -20,7 +20,8 @@ import gphoto2 as gp
 class CameraDevice:
     def __init__(self):
         log.debug('cam device init')
-        self.connected = False
+        self.connected = True
+        self.port = "Auto"
         
     def __del__(self, type, value, traceback):
         log.debug('cam device exit')
@@ -45,18 +46,24 @@ class CameraDevice:
         self.camera = gp.check_result(gp.gp_camera_new())
 
         self.context = gp.gp_context_new()
+        log.debug('init camera')
         gp.check_result(gp.gp_camera_init(self.camera, self.context))
         self.connected = True
         #self.set_config ( self.camera, self.context, 'capturetarget', 'sdram' )
 
     def capture(self):
-        log.debug('capture')
-        error, self.path = gp.gp_camera_capture(self.camera, gp.GP_CAPTURE_IMAGE , self.context)
-        if (error):
-            log.error ("Image capture failed " + str(error))
+        if self.connected:
+            log.debug('capture')
+            error, self.path = gp.gp_camera_capture(self.camera, gp.GP_CAPTURE_IMAGE, self.context)
+            if (error):
+                log.error("Image capture failed " + str(error))
+                return 0
+            log.info("Image captured to: " + self.path.folder + self.path.name)
+            return 1
+        else:
+            log.debug('no connected - no capture')
             return 0
-        log.info ("Image captured to: " + self.path.folder + self.path.name )
-        return 1            
+
 
     def save (self,name):
         log.debug('save')
@@ -83,12 +90,12 @@ if __name__ == "__main__":
     logit = logging.getLogger('gphoto2')
     logit.setLevel(logging.INFO)
 
-    while 1:
+    for x in range(0, 3):
         t = CameraDevice()
         t.open()
         ok = t.capture()
         f = "test.jpg"
-        log.debug ("Capture complete - Now save" + f )
+        log.debug("Capture complete - Now save file: " + f)
         t.save(f)
         t.close()
    

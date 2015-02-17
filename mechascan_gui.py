@@ -39,10 +39,15 @@ class mw(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.printer = QPrinter()
         self.load_img = self.load_img_fit  #default load type
+
+        # to make this work in qtdesigner add a widget to the central abd then use a horizontal layout
+        #then delete the widget
+
         self.scene = QGraphicsScene()
-        self.img_view = ImageView(self)
+        self.img_view = ImageView(self.centralwidget)
         self.img_view.setScene(self.scene)
         self.horizontalLayout.addWidget(self.img_view)  #add widget to uic generated form
+
 
         self.reload_img = self.reload_auto
 
@@ -85,6 +90,16 @@ class mw(QMainWindow, Ui_MainWindow):
     def tpt_slot_current(self, x):
         self.msp.select_slot(x)
 
+    def lamp_on(self, checked):
+        if checked:
+            self.msp.led_on()
+        else:
+            self.msp.led_off()
+
+    def capture(self):
+        self.msp.cam_capture()
+        self.msp.cam_save("/home/dan/x.jpg")
+
     def update_gui(self):
         s = ""
         try:
@@ -97,19 +112,8 @@ class mw(QMainWindow, Ui_MainWindow):
 
         self.lbl_led_status.setText("LED: " + self.msp.led_port)
         self.lbl_tpt_status.setText("Transport: " + self.msp.tpt_port)
-
-        self.lbl_cam_status.setText("Camera: " + "Faaark")
-        # self.check_led.setChecked(True)
-        # checkedState : int
-
-        # This property indicates the current checked state of the checkbox.
-
-    #Possible values: Qt.UnChecked - The checkbox is not checked (default). Qt.Checked - The checkbox is checked. Qt.PartiallyChecked - The checkbox is in a partially checked (or "mixed") state.
-
-    #The checked property also determines whether this property is Qt.Checked or Qt.UnChecked, and vice versa.
-    #self.check_led.checkedState() = self.msp.led_connected
-
-
+        self.lbl_cam_status.setText("Camera: " + self.msp.cam_port)
+        self.lbl_slot_status.setText("Slot: " + str(self.msp.get_slot()))
 
     def msp_update_from_gui(self):
         self.msp.led_enabled = self.check_led.isChecked()
@@ -126,6 +130,11 @@ class mw(QMainWindow, Ui_MainWindow):
         self.tb_stop.clicked.connect(self.scan_stop)
         self.tb_next.clicked.connect(self.tpt_next)
         self.tb_prev.clicked.connect(self.tpt_prev)
+
+        self.pushButton_lamp.clicked.connect(self.lamp_on)
+        self.pushButton_capture.clicked.connect(self.capture)
+        self.pushButton_tpt_home.clicked.connect(partial(self.msp.select_slot, 1))
+        self.pushButton_tpt_reset.clicked.connect(self.msp.tpt_reset)
 
         self.open_act.triggered.connect(self.open)
         self.open_new_act.triggered.connect(partial(self.open, True))
@@ -453,8 +462,8 @@ class ImageView(QGraphicsView):
     def __init__(self, parent=None):
         QGraphicsView.__init__(self, parent)
 
-        self.go_prev_img = parent.go_prev_img
-        self.go_next_img = parent.go_next_img
+        # self.go_prev_img = parent.go_prev_img
+        #self.go_next_img = parent.go_next_img
 
         pal = self.palette()
         pal.setColor(self.backgroundRole(), Qt.black)
