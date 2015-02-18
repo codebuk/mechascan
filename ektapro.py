@@ -523,7 +523,7 @@ class EktaproCommand:
         return self
 
     #
-    # String  conversion
+    # String  conversionc
     #
 
     def __str__(self):
