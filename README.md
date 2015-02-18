@@ -31,6 +31,15 @@ ldconfig: Can't stat /usr/libx32: No such file or directory
 [root@spain-dnt-com-au ~]# exit
 
 
+You can list the directories pkg-config looks in by default using:
+
+>pkg-config --variable pc_path pkg-config
+and....
+>pkg-config --libs --cflags libgphoto2
+
+
+
+
 
 
 
