@@ -54,18 +54,20 @@ class process:
         self.queue.put("Init done")
 
     def scan_threaded(self):
+
         thread = threading.Thread(target=self.scan)
         thread.daemon = True  # thread dies when main thread (only non-daemon thread) exits.
         thread.start()
 
-    def scan(self):
+    def scan(self, status):
+        status = self.queue
         with self.lock.acquire_timeout(0):
             try:
                 if self.led_enabled and not self.led.connected:
                     self.queue.put("Lamp not connected")
                     raise "Lamp not connected"
                 if self.tpt_enabled and not self.tpt.connected:
-                    self.queue.put("Transport not connected")
+                    self.queue.queue.put("Transport not connected")
                     raise "Transport not connected"
                 if self.cam_enabled and not self.cam.connected:
                     self.queue.put("Camera not connected")
@@ -88,6 +90,7 @@ class process:
                     if self.led_enabled: self.led.continuous(1, self.led_flash)
                     if (self.cam_enabled == True): cam_capture()
                     if self.led_enabled: self.led.continuous(1, self.led_rest)
+                    if
                     if self.tpt_enabled: self.tpt.next(post_timeout=0)
                     if self.enable_cam.get():
                         file = "/home/dan/Documents/pics/" + str(slide) + ".jpg"

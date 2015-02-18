@@ -82,7 +82,7 @@ class mw(QMainWindow, Ui_MainWindow):
 
     def tpt_next(self):
         self.msp.next_slot()
-        log.debug(str(self.check_led.checkState()))
+        self.capture()
 
     def tpt_prev(self):
         self.msp.prev_slot()
@@ -97,8 +97,12 @@ class mw(QMainWindow, Ui_MainWindow):
             self.msp.led_off()
 
     def capture(self):
+
         self.msp.cam_capture()
         self.msp.cam_save("/home/dan/x.jpg")
+        self.fname = "/home/dan/x.jpg"
+        self.reload_img()
+
 
     def update_gui(self):
         s = ""
