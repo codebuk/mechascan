@@ -117,16 +117,6 @@ class mw(QMainWindow, Ui_MainWindow):
         self.lbl_cam_status.setText("Camera: " + self.msp.cam_port)
         self.lbl_slot_status.setText("Slot: " + str(self.msp.get_slot()))
 
-    def check_devices(self):
-        if self.msp.led_enabled and not self.msp.led.connected:
-            raise "Lamp not connected"
-        if self.msp.tpt_enabled and not self.msp.tpt.connected:
-            self.queue.queue.put("Transport not connected")
-            raise "Transport not connected"
-        if self.msp.cam_enabled and not self.msp.cam.connected:
-            self.queue.put("Camera not connected")
-            raise "Camera  not connected"
-
     def msp_update_from_gui(self):
         self.msp.led_enabled = self.check_led.isChecked()
         self.msp.cam_enabled = self.check_cam.isChecked()
@@ -135,6 +125,15 @@ class mw(QMainWindow, Ui_MainWindow):
         self.msp.slot_start = self.sb_start_slot.value()
         self.msp.slot_end = self.sb_end_slot.value()
         self.msp.settle_delay = self.sb_settle_delay.value()
+        # check if ok to start
+        if self.msp.led_enabled and not self.msp.led.connected:
+            raise Exception("Lamp not connected")
+        if self.msp.tpt_enabled and not self.msp.tpt.connected:
+            self.queue.queue.put("Transport not connected")
+            raise Exception("Transport not connected")
+        if self.msp.cam_enabled and not self.msp.cam.connected:
+            self.queue.put("Camera not connected")
+            raise Exception("Camera  not connected")
 
     def create_actions(self):
         #connect to uic generated objects
