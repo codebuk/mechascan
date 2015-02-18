@@ -48,7 +48,6 @@ class mw(QMainWindow, Ui_MainWindow):
         self.img_view.setScene(self.scene)
         self.horizontalLayout.addWidget(self.img_view)  #add widget to uic generated form
 
-
         self.reload_img = self.reload_auto
 
         # self.open_new = self.parent.open_win
