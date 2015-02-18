@@ -90,7 +90,6 @@ class process:
                     if self.led_enabled: self.led.continuous(1, self.led_flash)
                     if (self.cam_enabled == True): cam_capture()
                     if self.led_enabled: self.led.continuous(1, self.led_rest)
-                    if
                     if self.tpt_enabled: self.tpt.next(post_timeout=0)
                     if self.enable_cam.get():
                         file = "/home/dan/Documents/pics/" + str(slide) + ".jpg"

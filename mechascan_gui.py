@@ -96,7 +96,6 @@ class mw(QMainWindow, Ui_MainWindow):
             self.msp.led_off()
 
     def capture(self):
-
         self.msp.cam_capture()
         self.msp.cam_save("/home/dan/x.jpg")
         self.fname = "/home/dan/x.jpg"
@@ -117,6 +116,16 @@ class mw(QMainWindow, Ui_MainWindow):
         self.lbl_tpt_status.setText("Transport: " + self.msp.tpt_port)
         self.lbl_cam_status.setText("Camera: " + self.msp.cam_port)
         self.lbl_slot_status.setText("Slot: " + str(self.msp.get_slot()))
+
+    def check_devices(self):
+        if self.msp.led_enabled and not self.msp.led.connected:
+            raise "Lamp not connected"
+        if self.msp.tpt_enabled and not self.msp.tpt.connected:
+            self.queue.queue.put("Transport not connected")
+            raise "Transport not connected"
+        if self.msp.cam_enabled and not self.msp.cam.connected:
+            self.queue.put("Camera not connected")
+            raise "Camera  not connected"
 
     def msp_update_from_gui(self):
         self.msp.led_enabled = self.check_led.isChecked()
