@@ -38,6 +38,12 @@ and....
 >pkg-config --libs --cflags libgphoto2
 
 
+Focus examples
+
+https://github.com/fape/libgphoto2/blob/master/examples/focus.c
+https://zoetrope.io/tech-blog/pursuit-better-tethered-autofocus
+
+
 
 
 
