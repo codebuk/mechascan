@@ -16,6 +16,13 @@ class scan_state (Enum):
     stopped = 1
     scanning = 2
 
+
+class scan_type(Enum):
+    prev = 1
+    next = 2
+    current = 3
+    start_end = 4
+
 class process:
     def __init__(self, msg_queue, file_queue):
         self.msg_queue = msg_queue
@@ -53,31 +60,51 @@ class process:
         self.tpt = EktaproDevice()
         self.msg_queue.put("Init done")
 
-    def scan_threaded(self):
-        thread = threading.Thread(target=self.scan)
+    def scan_threaded(self, scan_type=scan_type.start_end, start=1, end=1):
+        thread = threading.Thread(target=self.scan, args=(scan_type, start, end))
         thread.daemon = True  # thread dies when main thread (only non-daemon thread) exits.
         thread.start()
 
-    def scan(self):
+    def scan(self, scan=scan_type.start_end, start=1, end=1):
         with self.lock.acquire_timeout(0):
-            if not self.led_enabled: self.led.continuous(1, 0)
             self.scan_state = scan_state.scanning
-            if self.tpt_enabled: self.tpt.select(self.slot_start)
-            msg = "scanning slots " + str(self.slot_start) + " to " + str(self.slot_end)
-            log.info(msg)
+            if scan == scan_type.start_end:
+                self.slot_start(start)
+                self.slot_end(end)
+                if self.tpt_enabled: self.tpt.select(self.slot_start)
+            elif scan == scan_type.next:
+                self.tpt.next(post_timeout=0)
+                self.slot_start = self.tpt.slide
+                self.slot_end = self.tpt.slide
+            elif scan == scan_type.prev:
+                self.tpt.prev(post_timeout=0)
+                self.slot_start = self.tpt.slide
+                self.slot_end = self.tpt.slide
+            elif scan == scan_type.current:
+                self.slot_start = self.tpt.slide
+                self.slot_end = self.tpt.slide
+            else:
+                raise "No scan type!"
+
+            if not self.led_enabled: self.led.continuous(1, 0)
+            log.info("scanning slots " + str(self.slot_start) + " to " + str(self.slot_end))
             for slide in range(self.slot_start, self.slot_end + 1):
                 ts = time.time()
                 self.msg_queue.put("Scanning slide in slot " + str(slide))
-                if (self.scan_state == scan_state.stopped): break
+                if (self.scan_state == scan_state.stopped):
+                    self.msg_queue.put("Stopping scanning")
+                    break
                 if (self.tpt_enabled):
-                    # while (self.tpt.get_status(busy=True, debug=False)): pass
-                    if (self.settle_delay > 0 ):
-                        log.info("settle delay (ms) :" + str(self.settle_delay))
-                        time.sleep(self.settle_delay / 1000)
+                    while (self.tpt.get_status(busy=True, debug=False)): pass
+                    if (self.capture_settle_delay > 0 ):
+                        log.info("settle delay (ms) :" + str(self.capture_settle_delay))
+                        time.sleep(self.capture_settle_delay / 1000)
                 if self.led_enabled: self.led.continuous(1, self.led_flash)
                 if self.cam_enabled: self.cam_capture()
                 if self.led_enabled: self.led.continuous(1, self.led_rest)
-                if self.tpt_enabled: self.tpt.next(post_timeout=0)
+                if (self.tpt_enabled and (slide != self.slot_end )):
+                    log.info("set")
+                    self.tpt.next(post_timeout=0)
                 if self.cam_enabled:
                     file = "/home/dan/Documents/pics/" + str(slide) + ".jpg"
                     log.debug("Capture complete - Now save" + file)

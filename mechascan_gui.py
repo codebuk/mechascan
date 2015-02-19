@@ -1,4 +1,4 @@
-# void	showMessage(const QString & message, int timeout = 0)
+4  # void	showMessage(const QString & message, int timeout = 0)
 # self.statusbar
 
 from PyQt5.QtCore import Qt, QDir, QRect, QTimer
@@ -16,6 +16,7 @@ import preferences
 from fileimage import read_list, write_list
 import logging
 import mechascan_process
+from mechascan_process import scan_type
 from queue import Queue
 #ui generated code
 from main_window import *
@@ -53,7 +54,7 @@ class mw(QMainWindow, Ui_MainWindow):
         self.reload_img = self.reload_auto
 
         # self.open_new = self.parent.open_win
-        #self.exit = self.parent().closeAllWindows
+        # self.exit = self.parent().closeAllWindows
 
         self.create_actions()
         self.create_menu()
@@ -75,19 +76,26 @@ class mw(QMainWindow, Ui_MainWindow):
     #scan functions
 
     def scan (self):
-        self.msp_update_from_gui()
-        self.msp.scan_threaded()
-        #self.msp.scan()
+        if self.msp_update_from_gui():
+            self.msp.scan_threaded(scan_type=msp.scan_type.start_end,
+                                   start=self.sb_start_slot.value(),
+                                   end=self.sb_end_slot.value())
+            # self.msp.scan()
+
+    def scan_next(self):
+        if self.msp_update_from_gui():
+            self.msp.scan_threaded(scan_type=scan_type.next)
+
+    def scan_prev(self):
+        if self.msp_update_from_gui():
+            self.msp.scan_threaded(scan_type=scan_type.prev)
+
+    def scan_current(self):
+        if self.msp_update_from_gui():
+            self.msp.scan_threaded(scan_type=scan_type.current)
 
     def scan_stop(self):
         self.msp.stop_scan()
-
-    def tpt_next(self):
-        self.msp.next_slot()
-        QMessageBox.information(self, 'Error', 'Cannot load {} images.')
-
-    def tpt_prev(self):
-        self.msp.prev_slot()
 
     def tpt_slot_current(self, x):
         self.msp.select_slot(x)
@@ -97,13 +105,6 @@ class mw(QMainWindow, Ui_MainWindow):
             self.msp.led_on()
         else:
             self.msp.led_off()
-
-    def capture(self):
-        self.msp.cam_capture()
-        self.msp.cam_save("/home/dan/x.jpg")
-        self.fname = "/home/dan/x.jpg"
-        self.reload_img()
-
 
     def update_gui(self):
 
@@ -137,34 +138,43 @@ class mw(QMainWindow, Ui_MainWindow):
         self.lbl_tpt_status.setText("Transport: " + self.msp.tpt_port)
         self.lbl_cam_status.setText("Camera: " + self.msp.cam_port)
         self.lbl_slot_status.setText("Slot: " + str(self.msp.get_slot()))
+        if (self.sb_start_slot.maximum() != self.msp.tpt.tray_size):
+            self.sb_start_slot.setMaximum(self.msp.tpt.tray_size)
+            self.sb_start_slot.setValue(1)
+            self.sb_end_slot.setMaximum(self.msp.tpt.tray_size)
+            self.sb_end_slot.setValue(self.msp.tpt.tray_size)
 
     def msp_update_from_gui(self):
         self.msp.led_enabled = self.check_led.isChecked()
         self.msp.cam_enabled = self.check_cam.isChecked()
         self.msp.tpt_enabled = self.check_tpt.isChecked()
         self.msp.auto_home_enabled = self.cb_auto_home.isChecked()
-        self.msp.slot_start = self.sb_start_slot.value()
-        self.msp.slot_end = self.sb_end_slot.value()
-        self.msp.settle_delay = self.sb_settle_delay.value()
+        self.msp.capture_settle_delay = self.sb_settle_delay.value()
+
         # check if ok to start
+        msg = ""
         if self.msp.led_enabled and not self.msp.led.connected:
-            raise Exception("Lamp not connected")
+            msg = "Lamp not connected\n\n"
         if self.msp.tpt_enabled and not self.msp.tpt.connected:
-            self.queue.queue.put("Transport not connected")
-            raise Exception("Transport not connected")
+            msg += "Transport not connected\n\n"
         if self.msp.cam_enabled and not self.msp.cam.connected:
-            self.queue.put("Camera not connected")
-            raise Exception("Camera  not connected")
+            msg += "Camera not connected"
+        if msg:
+            QMessageBox.information(self, 'Can not start scanning', msg)
+            return False
+        else:
+            return True
 
     def create_actions(self):
         #connect to uic generated objects
         self.tb_play.clicked.connect(self.scan)
         self.tb_stop.clicked.connect(self.scan_stop)
-        self.tb_next.clicked.connect(self.tpt_next)
-        self.tb_prev.clicked.connect(self.tpt_prev)
+        self.tb_next.clicked.connect(self.scan_next)
+        self.tb_prev.clicked.connect(self.scan_prev)
+
+        self.pushButton_capture.clicked.connect(self.scan_current)
 
         self.pushButton_lamp.clicked.connect(self.lamp_on)
-        self.pushButton_capture.clicked.connect(self.capture)
         self.pushButton_tpt_home.clicked.connect(partial(self.msp.select_slot, 1))
         self.pushButton_tpt_reset.clicked.connect(self.msp.tpt_reset)
 
