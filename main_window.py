@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file './qt-mechascan/mainwindow.ui'
 #
-# Created: Wed Feb 18 23:06:28 2015
+# Created: Thu Feb 19 12:08:08 2015
 #      by: PyQt5 UI code generator 5.4
 #
 # WARNING! All changes made in this file will be lost!

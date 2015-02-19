@@ -77,7 +77,7 @@ class EktaproDevice:
             try:
                 fcntl.flock(s, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except IOError:
-                log.info("Can not immediately write-lock the file ($!), blocking ...")
+                log.info("Can not immediately write-lock file: " + port)
             else:
                 s.write(EktaproCommand(0).statusSystemReturn().toData())
                 self.info = s.read(5)

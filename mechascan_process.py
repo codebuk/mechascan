@@ -17,13 +17,14 @@ class scan_state (Enum):
     scanning = 2
 
 class process:
-    def __init__(self, q):
-        self.queue = q
+    def __init__(self, msg_queue, file_queue):
+        self.msg_queue = msg_queue
+        self.file_queue = file_queue
         self.lock = TimeoutLock()
 
         self.capture_delay_min = 0
         self.capture_delay_max = 10000
-        self.settle_delay = 100
+        self.capture_settle_delay = 100
 
         self.slot_min = 0
         self.slot_max = 140
@@ -47,11 +48,10 @@ class process:
         self.cam_port = "Not connected"
         self.cam_connected = False
 
-
         self.cam = CameraDevice()
         self.led = GardasoftDevice()
         self.tpt = EktaproDevice()
-        self.queue.put("Init done")
+        self.msg_queue.put("Init done")
 
     def scan_threaded(self):
         thread = threading.Thread(target=self.scan)
@@ -60,46 +60,35 @@ class process:
 
     def scan(self):
         with self.lock.acquire_timeout(0):
-            try:
-                # if self.led_enabled and not self.led.connected:
-                # self.queue.put("Lamp not connected")
-                #     raise "Lamp not connected"
-                # if self.tpt_enabled and not self.tpt.connected:
-                #     self.queue.queue.put("Transport not connected")
-                #     raise "Transport not connected"
-                # if self.cam_enabled and not self.cam.connected:
-                #     self.queue.put("Camera not connected")
-                #     raise "Camera  not connected"
-
-                if not self.led_enabled: self.led.continuous(1, 0)
-                self.scan_state = scan_state.scanning
-                ok = False
-                if self.tpt_enabled: self.tpt.select(self.slot_start)
-                for slide in range(self.slot_start, self.slot_end + 1):
-                    ts = time.time()
-                    self.queue.put("Scanning slide in slot " + str(slide))
-                    if (self.scan_state == scan_state.stopped): break
-                    if (self.tpt_enabled):
-                        # while (self.tpt.get_status(busy=True, debug=False)): pass
-                        if (self.settle_delay > 0 ):
-                            log.info("settle delay (ms) :" + str(self.settle_delay))
-                            time.sleep(self.settle_delay / 1000)
-                    if self.led_enabled: self.led.continuous(1, self.led_flash)
-                    if self.cam_enabled: cam_capture()
-                    if self.led_enabled: self.led.continuous(1, self.led_rest)
-                    if self.tpt_enabled: self.tpt.next(post_timeout=0)
-                    if self.cam_enabled:
-                        file = "/home/dan/Documents/pics/" + str(slide) + ".jpg"
-                        log.debug("Capture complete - Now save" + file)
-                        cam_save(file)
-                    log.debug("Scan time: " + str(time.time() - ts) + "for slot: " + str(slide))
-            except:
-                pass
+            if not self.led_enabled: self.led.continuous(1, 0)
+            self.scan_state = scan_state.scanning
+            if self.tpt_enabled: self.tpt.select(self.slot_start)
+            msg = "scanning slots " + str(self.slot_start) + " to " + str(self.slot_end)
+            log.info(msg)
+            for slide in range(self.slot_start, self.slot_end + 1):
+                ts = time.time()
+                self.msg_queue.put("Scanning slide in slot " + str(slide))
+                if (self.scan_state == scan_state.stopped): break
+                if (self.tpt_enabled):
+                    # while (self.tpt.get_status(busy=True, debug=False)): pass
+                    if (self.settle_delay > 0 ):
+                        log.info("settle delay (ms) :" + str(self.settle_delay))
+                        time.sleep(self.settle_delay / 1000)
+                if self.led_enabled: self.led.continuous(1, self.led_flash)
+                if self.cam_enabled: self.cam_capture()
+                if self.led_enabled: self.led.continuous(1, self.led_rest)
+                if self.tpt_enabled: self.tpt.next(post_timeout=0)
+                if self.cam_enabled:
+                    file = "/home/dan/Documents/pics/" + str(slide) + ".jpg"
+                    log.debug("Capture complete - Now save" + file)
+                    self.cam_save(file)
+                    self.file_queue.put(file)
+                log.debug("Scan time: " + str(time.time() - ts) + "for slot: " + str(slide))
             self.stop_scan()
 
     def cam_capture(self):
         self.cam.open()
-        self.ok = self.cam.capture()
+        self.cam.capture()
 
     def cam_save(self, file):
         self.cam.save(file)

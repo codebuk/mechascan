@@ -20,8 +20,11 @@ import gphoto2 as gp
 class CameraDevice:
     def __init__(self):
         log.debug('cam device init')
+
         self.connected = True
         self.port = "Auto"
+
+        self.capture_ok = False
         
     def __del__(self, type, value, traceback):
         log.debug('cam device exit')
@@ -57,20 +60,26 @@ class CameraDevice:
             error, self.path = gp.gp_camera_capture(self.camera, gp.GP_CAPTURE_IMAGE, self.context)
             if (error):
                 log.error("Image capture failed " + str(error))
-                return 0
+                self.capture_ok = False
+                return False
             log.info("Image captured to: " + self.path.folder + self.path.name)
-            return 1
+            self.capture_ok = True
+            return True
         else:
             log.debug('no connected - no capture')
-            return 0
+            self.capture_ok = False
+            return False
 
 
     def save (self,name):
         log.debug('save')
-        camera_file = gp.check_result(gp.gp_camera_file_get(
+        if self.capture_ok:
+            camera_file = gp.check_result(gp.gp_camera_file_get(
                 self.camera, self.path.folder, self.path.name, gp.GP_FILE_TYPE_NORMAL, self.context))
-        gp.check_result(gp.gp_file_save(camera_file, name))
-        gp.check_result(gp.gp_camera_file_delete(self.camera, self.path.folder, self.path.name, self.context))
+            gp.check_result(gp.gp_file_save(camera_file, name))
+            gp.check_result(gp.gp_camera_file_delete(self.camera, self.path.folder, self.path.name, self.context))
+        else:
+            log.info("save failed")
 
     def close(self):
         if (self.connected == True):
