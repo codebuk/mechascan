@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file './qt-mechascan/mainwindow.ui'
 #
-# Created: Fri Feb 20 22:23:23 2015
+# Created: Fri Feb 20 22:32:46 2015
 #      by: PyQt5 UI code generator 5.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -14,21 +14,21 @@ class Ui_MainWindow(object):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(741, 754)
         MainWindow.setStyleSheet("font: 9pt \"Cantarell\";\n"
-                                 "QGroupBox {\n"
-                                 "    border: 2px solid gray;\n"
-                                 "    border-radius: 5px;\n"
-                                 "    margin-top: 1ex; /* leave space at the top for the title */\n"
-                                 "}\n"
-                                 "QGroupBox::title {\n"
-                                 "    subcontrol-origin: margin;\n"
-                                 "    subcontrol-position: top center; /* position at the top center */\n"
-                                 "    padding: 0 3px;\n"
-                                 "    \n"
-                                 "}\n"
-                                 "\n"
-                                 "\n"
-                                 "\n"
-                                 "")
+"QGroupBox {\n"
+"    border: 2px solid gray;\n"
+"    border-radius: 5px;\n"
+"    margin-top: 1ex; /* leave space at the top for the title */\n"
+"}\n"
+"QGroupBox::title {\n"
+"    subcontrol-origin: margin;\n"
+"    subcontrol-position: top center; /* position at the top center */\n"
+"    padding: 0 3px;\n"
+"    \n"
+"}\n"
+"\n"
+"\n"
+"\n"
+"")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.centralwidget)
@@ -131,10 +131,8 @@ class Ui_MainWindow(object):
         self.dock_hardware.setMinimumSize(QtCore.QSize(170, 600))
         self.dock_hardware.setMaximumSize(QtCore.QSize(170, 524287))
         self.dock_hardware.setFloating(False)
-        self.dock_hardware.setFeatures(
-            QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
-        self.dock_hardware.setAllowedAreas(
-            QtCore.Qt.BottomDockWidgetArea | QtCore.Qt.RightDockWidgetArea | QtCore.Qt.TopDockWidgetArea)
+        self.dock_hardware.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable|QtWidgets.QDockWidget.DockWidgetMovable)
+        self.dock_hardware.setAllowedAreas(QtCore.Qt.BottomDockWidgetArea|QtCore.Qt.RightDockWidgetArea|QtCore.Qt.TopDockWidgetArea)
         self.dock_hardware.setObjectName("dock_hardware")
         self.dock_hardware_2 = QtWidgets.QWidget()
         self.dock_hardware_2.setObjectName("dock_hardware_2")
@@ -154,17 +152,17 @@ class Ui_MainWindow(object):
         self.gridLayout_3.setObjectName("gridLayout_3")
         self.groupBox = QtWidgets.QGroupBox(self.widget)
         self.groupBox.setStyleSheet("QGroupBox {\n"
-                                    "    border: 2px solid gray;\n"
-                                    "    border-radius: 5px;\n"
-                                    "    margin-top: 1ex; /* leave space at the top for the title */\n"
-                                    "}\n"
-                                    "QGroupBox::title {\n"
-                                    "    subcontrol-origin: margin;\n"
-                                    "    subcontrol-position: top center; /* position at the top center */\n"
-                                    "    padding: 0 3px;\n"
-                                    "    \n"
-                                    "}\n"
-                                    "")
+"    border: 2px solid gray;\n"
+"    border-radius: 5px;\n"
+"    margin-top: 1ex; /* leave space at the top for the title */\n"
+"}\n"
+"QGroupBox::title {\n"
+"    subcontrol-origin: margin;\n"
+"    subcontrol-position: top center; /* position at the top center */\n"
+"    padding: 0 3px;\n"
+"    \n"
+"}\n"
+"")
         self.groupBox.setFlat(False)
         self.groupBox.setCheckable(False)
         self.groupBox.setObjectName("groupBox")
@@ -208,17 +206,17 @@ class Ui_MainWindow(object):
         self.gridLayout_3.addWidget(self.groupBox, 8, 0, 1, 2)
         self.groupBox_2 = QtWidgets.QGroupBox(self.widget)
         self.groupBox_2.setStyleSheet("QGroupBox {\n"
-                                      "    border: 2px solid gray;\n"
-                                      "    border-radius: 5px;\n"
-                                      "    margin-top: 1ex; /* leave space at the top for the title */\n"
-                                      "}\n"
-                                      "QGroupBox::title {\n"
-                                      "    subcontrol-origin: margin;\n"
-                                      "    subcontrol-position: top center; /* position at the top center */\n"
-                                      "    padding: 0 3px;\n"
-                                      "    \n"
-                                      "}\n"
-                                      "")
+"    border: 2px solid gray;\n"
+"    border-radius: 5px;\n"
+"    margin-top: 1ex; /* leave space at the top for the title */\n"
+"}\n"
+"QGroupBox::title {\n"
+"    subcontrol-origin: margin;\n"
+"    subcontrol-position: top center; /* position at the top center */\n"
+"    padding: 0 3px;\n"
+"    \n"
+"}\n"
+"")
         self.groupBox_2.setObjectName("groupBox_2")
         self.gridLayout_5 = QtWidgets.QGridLayout(self.groupBox_2)
         self.gridLayout_5.setObjectName("gridLayout_5")
@@ -243,17 +241,17 @@ class Ui_MainWindow(object):
         self.gridLayout_3.addWidget(self.groupBox_2, 9, 0, 1, 2)
         self.groupBox_3 = QtWidgets.QGroupBox(self.widget)
         self.groupBox_3.setStyleSheet("QGroupBox {\n"
-                                      "    border: 2px solid gray;\n"
-                                      "    border-radius: 5px;\n"
-                                      "    margin-top: 1ex; /* leave space at the top for the title */\n"
-                                      "}\n"
-                                      "QGroupBox::title {\n"
-                                      "    subcontrol-origin: margin;\n"
-                                      "    subcontrol-position: top center; /* position at the top center */\n"
-                                      "    padding: 0 3px;\n"
-                                      "    \n"
-                                      "}\n"
-                                      "")
+"    border: 2px solid gray;\n"
+"    border-radius: 5px;\n"
+"    margin-top: 1ex; /* leave space at the top for the title */\n"
+"}\n"
+"QGroupBox::title {\n"
+"    subcontrol-origin: margin;\n"
+"    subcontrol-position: top center; /* position at the top center */\n"
+"    padding: 0 3px;\n"
+"    \n"
+"}\n"
+"")
         self.groupBox_3.setObjectName("groupBox_3")
         self.gridLayout_6 = QtWidgets.QGridLayout(self.groupBox_3)
         self.gridLayout_6.setObjectName("gridLayout_6")
@@ -280,17 +278,17 @@ class Ui_MainWindow(object):
         self.gridLayout_3.addWidget(self.groupBox_3, 10, 0, 1, 2)
         self.groupBox_4 = QtWidgets.QGroupBox(self.widget)
         self.groupBox_4.setStyleSheet("QGroupBox {\n"
-                                      "    border: 2px solid gray;\n"
-                                      "    border-radius: 5px;\n"
-                                      "    margin-top: 1ex; /* leave space at the top for the title */\n"
-                                      "}\n"
-                                      "QGroupBox::title {\n"
-                                      "    subcontrol-origin: margin;\n"
-                                      "    subcontrol-position: top center; /* position at the top center */\n"
-                                      "    padding: 0 3px;\n"
-                                      "    \n"
-                                      "}\n"
-                                      "")
+"    border: 2px solid gray;\n"
+"    border-radius: 5px;\n"
+"    margin-top: 1ex; /* leave space at the top for the title */\n"
+"}\n"
+"QGroupBox::title {\n"
+"    subcontrol-origin: margin;\n"
+"    subcontrol-position: top center; /* position at the top center */\n"
+"    padding: 0 3px;\n"
+"    \n"
+"}\n"
+"")
         self.groupBox_4.setObjectName("groupBox_4")
         self.gridLayout = QtWidgets.QGridLayout(self.groupBox_4)
         self.gridLayout.setObjectName("gridLayout")
