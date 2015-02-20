@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QGridLayout, QLabel, QSpi
 import logging
 log = logging.getLogger(__name__)
 
+
 class SpinBox(QSpinBox):
     def __init__(self, val, maxval, step, func):
         QSpinBox.__init__(self)
@@ -11,6 +12,7 @@ class SpinBox(QSpinBox):
         self.setValue(val)
         self.setSingleStep(step)
         self.valueChanged.connect(func)
+
 
 class ResizeDialog(QDialog):
     def __init__(self, parent, width, height):
@@ -65,6 +67,7 @@ class ResizeDialog(QDialog):
     def toggle_aspratio(self):
         """Toggle whether aspect ratio should be preserved."""
         self.pres_aspratio = self.aspratio.isChecked()
+
 
 class CropDialog(QDialog):
     def __init__(self, parent, width, height):
@@ -127,6 +130,3 @@ class CropDialog(QDialog):
         self.get_ty.setMaximum(upper - 1)
         self.new_height = upper - self.get_ty.value()
         self.draw(self.get_lx.value(), self.get_ty.value(), self.new_width, self.new_height)
-
-if __name__ == "__main__":
-    import time, logging

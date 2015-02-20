@@ -9,6 +9,7 @@ log = logging.getLogger(__name__)
 
 from enumerate_serial import * 
 
+
 class GardasoftDevice:
     # communications port should be set to 9600 baud, no parity, 8 data bits, 1 stop bit.
     # al characters are echoed so read returns characters sent to device
@@ -18,18 +19,18 @@ class GardasoftDevice:
         self.port = "Not connected"
         self.connected = 0
 
-    def open(self, port = None):
+    def open(self, port=None):
         self.ver = ""
         self.connected = 0
         if (port is None):
-            ports = enumerate(check_lock = True)
-            for port in ports:  
-                if (self.open_port (port)):
+            ports = enumerate(check_lock=True)
+            for port in ports:
+                if (self.open_port(port)):
                     return True
         else:
-            if (self.open_port( port)):
+            if (self.open_port(port)):
                 return True
-        log.warn( "Can not find a gardasoft device")
+        log.warn("Can not find a gardasoft device")
         return False
 
     def open_port(self, port):
@@ -40,13 +41,13 @@ class GardasoftDevice:
                 self.ser = serial.serial_for_url(port, speeds, timeout=.1, writeTimeout=.01)
                 log.info("Port opened: " + port)
                 try:
-                    fcntl.flock(self.ser, fcntl.LOCK_EX | fcntl.LOCK_NB )
+                    fcntl.flock(self.ser, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 except IOError:
-                    log.info( "Can not immediately write-lock the file as it is locked: " + port)
+                    log.info("Can not immediately write-lock the file as it is locked: " + port)
                 else:
-                    log.info ("Check for device at: " + str(speeds) + " baud. Port: " + port)
+                    log.info("Check for device at: " + str(speeds) + " baud. Port: " + port)
                     self.ser.flush()
-                    self.ser.read(2000) #clear any junk
+                    self.ser.read(2000)  # clear any junk
                     self.connected = 1  # allow clear error to access port
                     if (self.clear_error()):
                         self.ser.timeout = .1  # tried .01 but random errors
@@ -63,7 +64,6 @@ class GardasoftDevice:
             logging.error("Not a Gardasoftdevice")
             return 0
         
-
     def write_read(self, mess, read_char):
         if (self.connected):
             try:
@@ -133,7 +133,7 @@ class GardasoftDevice:
         z = len (com)
         mesg = 'continous ' + str(channel) + ' - ' + str(current) + " - " + repr(com)
         info = self.write_read ( com , z + 1)
-        if (info == None):
+        if (info is None):
             return 0
         er = re.search("\A" + com.decode("utf-8") + "(>)\Z", info, re.DOTALL)
         if er:

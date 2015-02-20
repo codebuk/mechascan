@@ -17,33 +17,33 @@ import logging
 log = logging.getLogger(__name__)
 import gphoto2 as gp
 
+
 class CameraDevice:
     def __init__(self):
         log.debug('cam device init')
 
+        self.camera = None
+        self.path = None
+        self.context = None
         self.connected = True
         self.port = "Auto"
-
         self.capture_ok = False
-        
-    def __del__(self, type, value, traceback):
-        log.debug('cam device exit')
-        self.close()
-        
+
     def set_config(self, camera, context, name, value):
         # get configuration tree
         log.debug('set config')
         config = gp.check_result(gp.gp_camera_get_config(camera, context))
-        widget_child = gp.check_result (gp.gp_widget_get_child_by_name(config, name))
-        #widget_type = gp.check_result(gp.gp_widget_get_type(widget_child))
-        #widget_value = gp.check_result(gp.gp_widget_get_value(widget_child))
+        widget_child = gp.check_result(gp.gp_widget_get_child_by_name(config, name))
+        # widget_type = gp.check_result(gp.gp_widget_get_type(widget_child))
+        # widget_value = gp.check_result(gp.gp_widget_get_value(widget_child))
         gp.check_result(gp.gp_widget_set_value(widget_child, value))
         gp.check_result(gp.gp_camera_set_config(camera, config, context))
-        #log.info ( name + " type : " + str(widget_type) + " old value : " + str(widget_value) + " new value : " + value)
+        # log.info ( name + " type : " + str(widget_type) + " old value : " +
+        # str(widget_value) + " new value : " + value)
 
     def open(self):
         log.debug('open')
-        #gp.check_result(gp.use_python_logging())
+        # gp.check_result(gp.use_python_logging())
         log.debug('allocate memory')
         gp.gp_camera_new()
         self.camera = gp.check_result(gp.gp_camera_new())
@@ -52,13 +52,13 @@ class CameraDevice:
         log.debug('init camera')
         gp.check_result(gp.gp_camera_init(self.camera, self.context))
         self.connected = True
-        #self.set_config ( self.camera, self.context, 'capturetarget', 'sdram' )
+        # self.set_config ( self.camera, self.context, 'capturetarget', 'sdram' )
 
     def capture(self):
         if self.connected:
             log.debug('capture')
             error, self.path = gp.gp_camera_capture(self.camera, gp.GP_CAPTURE_IMAGE, self.context)
-            if (error):
+            if error:
                 log.error("Image capture failed " + str(error))
                 self.capture_ok = False
                 return False
@@ -70,8 +70,7 @@ class CameraDevice:
             self.capture_ok = False
             return False
 
-
-    def save (self,name):
+    def save(self, name):
         log.debug('save')
         if self.capture_ok:
             camera_file = gp.check_result(gp.gp_camera_file_get(
@@ -82,20 +81,19 @@ class CameraDevice:
             log.info("save failed")
 
     def close(self):
-        if (self.connected == True):
+        if self.connected:
             log.debug('cam device close')
             try:
                 gp.check_result(gp.gp_camera_exit(self.camera, self.context))
             except:
-                log.info ("Error closing camera - not opened?")
-            return 0
+                log.info("Error closing camera - not opened?")
             self.connected = False
+            return 0
 
 if __name__ == "__main__":
-
     logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s.%(msecs)d %(levelname)s %(module)s %(message)s',
-                    datefmt='%H:%M:%S')
+                        format='%(asctime)s.%(msecs)d %(levelname)s %(module)s %(message)s',
+                        datefmt='%H:%M:%S')
     logit = logging.getLogger('gphoto2')
     logit.setLevel(logging.INFO)
 
@@ -107,4 +105,3 @@ if __name__ == "__main__":
         log.debug("Capture complete - Now save file: " + f)
         t.save(f)
         t.close()
-   

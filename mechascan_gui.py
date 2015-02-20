@@ -1,16 +1,12 @@
-4  # void	showMessage(const QString & message, int timeout = 0)
-# self.statusbar
-
 from PyQt5.QtCore import Qt, QDir, QRect, QTimer
 from PyQt5.QtGui import QImage, QPixmap, QTransform, QPainter
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem,
-                             QMenu, QDialog, QFileDialog, QAction, QMessageBox, QFrame, QRubberBand, QLabel,
-                             QProgressBar, qApp)
+                             QMenu, QDialog, QFileDialog, QMessageBox, QFrame, QRubberBand, QLabel,
+                             QProgressBar)
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
-from gi.repository import GExiv2
+# from gi.repository import GExiv2
 from functools import partial
 import os
-import sys
 import editimage
 import preferences
 from fileimage import read_list, write_list
@@ -18,7 +14,7 @@ import logging
 import mechascan_process
 from mechascan_process import scan_type
 from queue import Queue
-#ui generated code
+# ui generated code
 from main_window import *
 
 logging.basicConfig(level=logging.DEBUG,
@@ -36,20 +32,20 @@ class mw(QMainWindow, Ui_MainWindow):
         self.msg_queue = Queue()
         self.file_queue = Queue()
         self.msp = mechascan_process.process(self.msg_queue, self.file_queue)
-        s = self.msp.connect_hardware_threaded()
+        self.msp.connect_hardware_threaded()
 
         self.setupUi(self)
         self.printer = QPrinter()
-        self.load_img = self.load_img_fit  #default load type
+        self.load_img = self.load_img_fit  # default load type
 
         # to make this work in qtdesigner add a widget to the central abd then use a horizontal layout
-        #then delete the widget
+        # then delete the widget
 
         self.scene = QGraphicsScene()
         # self.img_view = ImageView(self.centralwidget)
         self.img_view = ImageView(self)
         self.img_view.setScene(self.scene)
-        self.horizontalLayout.addWidget(self.img_view)  #add widget to uic generated form
+        self.horizontalLayout.addWidget(self.img_view)  # add widget to uic generated form
 
         self.reload_img = self.reload_auto
 
@@ -62,10 +58,10 @@ class mw(QMainWindow, Ui_MainWindow):
         self.slides_next = True
 
         self.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.showMenu)
+        self.customContextMenuRequested.connect(self.show_menu)
 
         self.read_prefs()
-        self.pics_dir = os.path.expanduser('~/Pictures') or QDir.currentPath()
+        self.pics_dir = os.path.expanduser('~/Pictures') or QDir.currentPath(self)
         # we use a timer to process status updates from the process module
         #we could have used signals but I did not want to make the module dependant on qt
         self.timer = QtCore.QTimer()
@@ -73,9 +69,9 @@ class mw(QMainWindow, Ui_MainWindow):
         self.timer.start(5)
         self.resize(1000, 600)
 
-    #scan functions
+    # scan functions
 
-    def scan (self):
+    def scan(self):
         if self.msp_update_from_gui():
             self.msp.scan_threaded(scan_type=scan_type.start_end,
                                    start=self.sb_start_slot.value(),
@@ -119,11 +115,11 @@ class mw(QMainWindow, Ui_MainWindow):
                 self.msg_queue.task_done()
             except:
                 raise
-        if msg: self.statusbar.showMessage(msg, 1000)
+        if msg:
+            self.statusbar.showMessage(msg, 1000)
 
         file = ""
         while not self.file_queue.empty():
-            file = ""
             try:
                 file = self.file_queue.get_nowait()
                 log.info("File on disk: " + file)
@@ -138,7 +134,7 @@ class mw(QMainWindow, Ui_MainWindow):
         self.lbl_tpt_status.setText("Transport: " + self.msp.tpt_port)
         self.lbl_cam_status.setText("Camera: " + self.msp.cam_port)
         self.lbl_slot_status.setText("Slot: " + str(self.msp.get_slot()))
-        if (self.sb_start_slot.maximum() != self.msp.tpt.tray_size):
+        if self.sb_start_slot.maximum() != self.msp.tpt.tray_size:
             self.sb_start_slot.setMaximum(self.msp.tpt.tray_size)
             self.sb_start_slot.setValue(1)
             self.sb_end_slot.setMaximum(self.msp.tpt.tray_size)
@@ -166,7 +162,7 @@ class mw(QMainWindow, Ui_MainWindow):
             return True
 
     def create_actions(self):
-        #connect to uic generated objects
+        # connect to uic generated objects
         self.tb_play.clicked.connect(self.scan)
         self.tb_stop.clicked.connect(self.scan_stop)
         self.tb_next.clicked.connect(self.scan_next)
@@ -184,7 +180,7 @@ class mw(QMainWindow, Ui_MainWindow):
         self.print_act.triggered.connect(self.print_img)
         self.save_act.triggered.connect(self.save_img)
         self.close_act.triggered.connect(self.close)
-        #self.exit_act.triggered.connect(self.exit)
+        # self.exit_act.triggered.connect(self.exit)
         self.fulls_act.triggered.connect(self.toggle_fs)
         self.ss_act.triggered.connect(self.toggle_slideshow)
         self.ss_next_act.triggered.connect(self.set_slide_type)
@@ -222,13 +218,13 @@ class mw(QMainWindow, Ui_MainWindow):
         self.progress.setMaximumSize(170, 19)
         self.statusbar.addPermanentWidget(self.progress)
 
-
     def create_menu(self):
         self.popup = QMenu(self)
         main_acts = [self.open_act, self.open_new_act, self.reload_act, self.print_act, self.save_act]
         edit_acts1 = [self.rotleft_act, self.rotright_act, self.fliph_act, self.flipv_act]
         edit_acts2 = [self.resize_act, self.crop_act]
-        view_acts = [self.next_act, self.prev_act, self.zin_act, self.zout_act, self.fit_win_act, self.fulls_act, self.ss_act, self.ss_next_act]
+        view_acts = [self.next_act, self.prev_act, self.zin_act, self.zout_act, self.fit_win_act, self.fulls_act,
+                     self.ss_act, self.ss_next_act]
         help_acts = [self.help_act, self.about_act]
         end_acts = [self.prefs_act, self.props_act, self.close_act, self.exit_act]
         for act in main_acts:
@@ -258,20 +254,20 @@ class mw(QMainWindow, Ui_MainWindow):
         for act in self.action_list:
             self.addAction(act)
 
-    def showMenu(self, pos):
+    def show_menu(self, pos):
         self.popup.popup(self.mapToGlobal(pos))
 
     def create_dict(self):
         """Create a dictionary to handle auto-orientation."""
         self.orient_dict = {None: self.load_img,
-                '1': self.load_img,
-                '2': partial(self.img_flip, -1, 1),
-                '3': partial(self.img_rotate, 180),
-                '4': partial(self.img_flip, -1, 1),
-                '5': self.img_rotate_fliph,
-                '6': partial(self.img_rotate, 90),
-                '7': self.img_rotate_flipv,
-                '8': partial(self.img_rotate, 270)}
+                            '1': self.load_img,
+                            '2': partial(self.img_flip, -1, 1),
+                            '3': partial(self.img_rotate, 180),
+                            '4': partial(self.img_flip, -1, 1),
+                            '5': self.img_rotate_fliph,
+                            '6': partial(self.img_rotate, 90),
+                            '7': self.img_rotate_flipv,
+                            '8': partial(self.img_rotate, 270)}
 
     def read_prefs(self):
         """Parse the preferences from the config file, or set default values."""
@@ -299,7 +295,7 @@ class mw(QMainWindow, Ui_MainWindow):
         self.reload_img = self.reload_auto if self.auto_orient else self.reload_nonauto
 
     def open_dir(self):
-        fname = QFileDialog.getExistingDirectory()
+        fname = QFileDialog.getExistingDirectory(self)
         # .getOpenFileName(self, 'Open File', self.pics_dir)[0]
         if fname:
             if fname.lower().endswith(read_list()):
@@ -327,7 +323,7 @@ class mw(QMainWindow, Ui_MainWindow):
         dirname = os.path.dirname(self.fname)
         self.set_img_list(dirname)
         self.img_index = self.filelist.index(self.fname)
-        self.statusbar.showMessage(fname , 2000)
+        self.statusbar.showMessage(fname, 2000)
 
     def set_img_list(self, dirname):
         """Create a list of readable images from the current directory."""
@@ -416,7 +412,7 @@ class mw(QMainWindow, Ui_MainWindow):
             width = dialog.get_width.value()
             height = dialog.get_height.value()
             self.pixmap = self.pixmap.scaled(width, height, Qt.IgnoreAspectRatio,
-                    Qt.SmoothTransformation)
+                                             Qt.SmoothTransformation)
             self.save_img()
 
     def crop_img(self):
@@ -466,8 +462,8 @@ class mw(QMainWindow, Ui_MainWindow):
         if fname:
             if fname.lower().endswith(write_list()):
                 keep_exif = QMessageBox.question(self, 'Save exif data',
-                        'Do you want to save the picture metadata?', QMessageBox.Yes |
-                        QMessageBox.No, QMessageBox.Yes)
+                                                 'Do you want to save the picture metadata?', QMessageBox.Yes |
+                                                 QMessageBox.No, QMessageBox.Yes)
                 if keep_exif == QMessageBox.Yes:
                     self.pixmap.save(fname, None, self.quality)
                     exif = GExiv2.Metadata(self.fname)
@@ -512,8 +508,9 @@ class mw(QMainWindow, Ui_MainWindow):
         about_message = 'Version: 0.0.0\nAuthor: Dan Tyrrell\nwww.breager.com'
         QMessageBox.about(self, 'About Mechaslide', about_message)
 
+
 class ImageView(QGraphicsView):
-    #todo: parent is named - why?
+    # todo: parent is named - why?
     def __init__(self, parent=None):
         QGraphicsView.__init__(self, parent)
 
@@ -567,7 +564,8 @@ class ImageView(QGraphicsView):
         y = int(size.y())
         width = int(size.width())
         height = int(size.height())
-        return (x, y, width, height)
+        return x, y, width, height
+
 
 class ImageViewer(QApplication):
     def __init__(self, args):
@@ -593,6 +591,7 @@ class ImageViewer(QApplication):
             self.win.open_img(fname)
         else:
             self.win.open()
+
 
 if __name__ == '__main__':
     app = ImageViewer(sys.argv)

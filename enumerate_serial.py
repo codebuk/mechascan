@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from glob import glob
-import sys
 import serial
 from serial import *
 import logging
@@ -10,7 +9,8 @@ logging.basicConfig(level=logging.DEBUG,
                     datefmt='%M:%S')
 log = logging.getLogger(__name__)
 
-def enumerate(check_lock = None):
+
+def enumerate(check_lock=None):
     """Lists serial ports
 
     :raises EnvironmentError:
@@ -20,7 +20,6 @@ def enumerate(check_lock = None):
     """
     ports = []
   
-
     if sys.platform == 'win32':
         # Iterate through registry because WMI does not show virtual serial ports
         import winreg
@@ -33,40 +32,39 @@ def enumerate(check_lock = None):
         while True:
             try:
                 ports.append(winreg.EnumValue(key, i)[1])
-                i = i + 1
+                i += 1
             except WindowsError:
                 break
-    elif sys.platform.startswith ('linux') or sys.platform.startswith('cygwin'):
+    elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
         if os.path.exists('/dev/serial/by-id'):
             entries = os.listdir('/dev/serial/by-id')
-            dirs = []
             for devs in entries:
                 link = os.readlink(os.path.join('/dev/serial/by-id', devs))
                 path = os.path.normpath(os.path.join('/dev/serial/by-id', link))
-                log.debug (path + " -- " + link + "--" + devs)
-                if (check_lock):
+                log.debug(path + " -- " + link + "--" + devs)
+                if check_lock:
                     try:
                         ser = serial.Serial(path, 9600, timeout=.1, writeTimeout=.01)
-                        log.debug ("Port opened: " + path)
+                        log.debug("Port opened: " + path)
                         try:
-                            fcntl.flock(ser, fcntl.LOCK_EX | fcntl.LOCK_NB )
+                            fcntl.flock(ser, fcntl.LOCK_EX | fcntl.LOCK_NB)
                             ports.extend([path])
                         except IOError:
-                            log.info( "Can not immediately write-lock the file as it is locked. Port is in use: " + path)
+                            log.info("Can not immediately write-lock file as it is locked. Port is in use: " + path)
                     except:
+                        log.info("Can not open port: " + path)
                         raise
-                        log.info( "Can not open port: " + path)
                 else:
                     ports.extend([path])
 
         for dev in glob('/dev/ttyS*'):
             try:
-                port = Serial(dev)
-            except (OSError):
+                comm_port = Serial(dev)
+            except OSError:
                 pass
             else:
-                log.debug (dev)
-                port.close()
+                log.debug(dev)
+                comm_port.close()
                 ports.append(dev)
                 
     elif sys.platform.startswith('darwin'):
@@ -76,14 +74,15 @@ def enumerate(check_lock = None):
         raise EnvironmentError('Unsupported platform')
     return ports
 
+
 def script():
-    for port in enumerate():
-        print(port)
-    for port in enumerate(check_lock=True):
-        print(port)
+    for comm_port in enumerate():
+        print(comm_port)
+    for comm_port in enumerate(check_lock=True):
+        print(comm_port)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s.%(msecs)d %(levelname)s %(message)s',
-                    datefmt='%H:%M:%S')
+                        format='%(asctime)s.%(msecs)d %(levelname)s %(message)s',
+                        datefmt='%H:%M:%S')
     script()
