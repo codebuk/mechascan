@@ -40,6 +40,7 @@ class EktaproDevice:
         self.version = None
         self.type = 0
         self.serial_device = None
+        self.serial_device = ""
         self.port = None
         self.connected = 0
         self.standby = 0
@@ -69,7 +70,7 @@ class EktaproDevice:
         self.close()
         log.info("Checking port: " + comm_port)
         try:
-            serial_handle = serial.serial_for_url(port, 9600, timeout=.1, writeTimeout=.1)
+            serial_handle = serial.serial_for_url(comm_port, 9600, timeout=.1, writeTimeout=.1)
             try:
                 fcntl.flock(serial_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except IOError:
@@ -107,7 +108,7 @@ class EktaproDevice:
     def close(self):
         if self.connected:
             try:
-                self.serialDevice.close()
+                self.serial_device.close()
             except:
                 pass
         self.port = "Not Connected"
@@ -293,14 +294,14 @@ class EktaproDevice:
         self.busy(pre_timeout, desc="pre timeout ")
         if self.connected:
             try:  # might be disconnected or port removed or....
-                self.serialDevice.write(command.toData())
+                self.serial_device.write(command.toData())
             except:
                 raise
         else:
             log.debug("ignore - device not connected")
         if self.connected and read_bytes:
             try:
-                rec = self.serialDevice.read(read_bytes)
+                rec = self.serial_device.read(read_bytes)
             except:
                 raise
             if debug:
@@ -368,7 +369,7 @@ class EktaproCommand:
             raise Exception("Argument count invalid")
 
     def toData(self):
-        if not self.initalized:
+        if not self.initialized:
             raise Exception("Command not initialized")
         return bytes([int(self.id * 8 + self.mode * 2 + 1), int(self.arg1), int(self.arg2)])
 

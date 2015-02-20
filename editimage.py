@@ -11,6 +11,7 @@ class SpinBox(QSpinBox):
         self.setRange(0, maxval)
         self.setValue(val)
         self.setSingleStep(step)
+        # noinspection PyUnresolvedReferences
         self.valueChanged.connect(func)
 
 
@@ -24,10 +25,17 @@ class ResizeDialog(QDialog):
         self.setLayout(layout)
 
         self.set_resize_view(layout, width, height)
-        self.set_aspratio_view(layout)
+        self.set_aspect_ratio_view(layout)
+
+        self.get_width = None
+        self.get_height = None
+        self.aspect_ratio = None
+        self.pres_aspect_ratio = None
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        # noinspection PyUnresolvedReferences
         buttons.accepted.connect(self.accept)
+        # noinspection PyUnresolvedReferences
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
@@ -43,35 +51,41 @@ class ResizeDialog(QDialog):
         self.get_height = SpinBox(height, height, 10, self.height_changed)
         layout.addWidget(self.get_height, 1, 1, 1, 1)
 
-    def set_aspratio_view(self, layout):
-        self.pres_aspratio = True
-        self.aspratio = QCheckBox('Preserve aspect ratio')
-        self.aspratio.setChecked(True)
-        self.aspratio.toggled.connect(self.toggle_aspratio)
-        layout.addWidget(self.aspratio, 2, 0, 1, 2)
+    def set_aspect_ratio_view(self, layout):
+        self.pres_aspect_ratio = True
+        self.aspect_ratio = QCheckBox('Preserve aspect ratio')
+        self.aspect_ratio.setChecked(True)
+        # noinspection PyUnresolvedReferences
+        self.aspect_ratio.toggled.connect(self.toggle_aspect_ratio)
+        layout.addWidget(self.aspect_ratio, 2, 0, 1, 2)
 
     def width_changed(self, value):
-        if self.pres_aspratio:
+        if self.pres_aspect_ratio:
             height = value / self.ratio
             self.get_height.blockSignals(True)
             self.get_height.setValue(height)
             self.get_height.blockSignals(False)
 
     def height_changed(self, value):
-        if self.pres_aspratio:
+        if self.pres_aspect_ratio:
             width = value * self.ratio
             self.get_width.blockSignals(True)
             self.get_width.setValue(width)
             self.get_width.blockSignals(False)
 
-    def toggle_aspratio(self):
+    def toggle_aspect_ratio(self):
         """Toggle whether aspect ratio should be preserved."""
-        self.pres_aspratio = self.aspratio.isChecked()
+        self.pres_aspect_ratio = self.aspect_ratio.isChecked()
 
 
 class CropDialog(QDialog):
     def __init__(self, parent, width, height):
         QDialog.__init__(self, parent)
+
+        self.get_lx = None
+        self.get_rx = None
+        self.get_ty = None
+        self.get_by = None
 
         self.setWindowTitle('Crop image')
         self.draw = parent.img_view.crop_draw
@@ -83,7 +97,9 @@ class CropDialog(QDialog):
         self.set_crop_view(layout)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        # noinspection PyUnresolvedReferences
         buttons.accepted.connect(self.accept)
+        # noinspection PyUnresolvedReferences
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 

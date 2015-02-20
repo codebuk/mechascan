@@ -289,7 +289,7 @@ QGroupBox::title {
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>169</width>
+       <width>186</width>
        <height>525</height>
       </rect>
      </property>
@@ -357,7 +357,7 @@ QGroupBox::title {
             <item row="0" column="0" colspan="2">
              <widget class="QCheckBox" name="check_tpt">
               <property name="text">
-               <string>Use Transport</string>
+               <string>UEnable Transport</string>
               </property>
               <property name="checked">
                <bool>true</bool>

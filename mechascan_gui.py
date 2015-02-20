@@ -7,12 +7,13 @@ from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
 # from gi.repository import GExiv2
 from functools import partial
 import os
+import sys
 import editimage
 import preferences
 from fileimage import read_list, write_list
 import logging
 import mechascan_process
-from mechascan_process import scan_type
+from mechascan_process import ScanType
 from queue import Queue
 # ui generated code
 from main_window import *
@@ -31,7 +32,7 @@ class mw(QMainWindow, Ui_MainWindow):
         super(mw, self).__init__()
         self.msg_queue = Queue()
         self.file_queue = Queue()
-        self.msp = mechascan_process.process(self.msg_queue, self.file_queue)
+        self.msp = mechascan_process.Process(self.msg_queue, self.file_queue)
         self.msp.connect_hardware_threaded()
 
         self.setupUi(self)
@@ -73,22 +74,22 @@ class mw(QMainWindow, Ui_MainWindow):
 
     def scan(self):
         if self.msp_update_from_gui():
-            self.msp.scan_threaded(scan_type=scan_type.start_end,
+            self.msp.scan_threaded(scan_type=ScanType.start_end,
                                    start=self.sb_start_slot.value(),
                                    end=self.sb_end_slot.value())
             # self.msp.scan()
 
     def scan_next(self):
         if self.msp_update_from_gui():
-            self.msp.scan_threaded(scan_type=scan_type.next)
+            self.msp.scan_threaded(scan_type=ScanType.next)
 
     def scan_prev(self):
         if self.msp_update_from_gui():
-            self.msp.scan_threaded(scan_type=scan_type.prev)
+            self.msp.scan_threaded(scan_type=ScanType.prev)
 
     def scan_current(self):
         if self.msp_update_from_gui():
-            self.msp.scan_threaded(scan_type=scan_type.current)
+            self.msp.scan_threaded(scan_type=ScanType.current)
 
     def scan_stop(self):
         self.msp.stop_scan()

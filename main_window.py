@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file './qt-mechascan/mainwindow.ui'
 #
-# Created: Fri Feb 20 22:32:46 2015
+# Created: Fri Feb 20 23:56:23 2015
 #      by: PyQt5 UI code generator 5.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -137,7 +137,7 @@ class Ui_MainWindow(object):
         self.dock_hardware_2 = QtWidgets.QWidget()
         self.dock_hardware_2.setObjectName("dock_hardware_2")
         self.layoutWidget = QtWidgets.QWidget(self.dock_hardware_2)
-        self.layoutWidget.setGeometry(QtCore.QRect(0, 0, 169, 525))
+        self.layoutWidget.setGeometry(QtCore.QRect(0, 0, 186, 525))
         self.layoutWidget.setObjectName("layoutWidget")
         self.vl_hardware = QtWidgets.QVBoxLayout(self.layoutWidget)
         self.vl_hardware.setSpacing(0)
@@ -425,7 +425,7 @@ class Ui_MainWindow(object):
         self.tb_next.setShortcut(_translate("MainWindow", "N"))
         self.groupBox.setTitle(_translate("MainWindow", "Transport"))
         self.label_5.setText(_translate("MainWindow", "Goto Slot"))
-        self.check_tpt.setText(_translate("MainWindow", "Use Transport"))
+        self.check_tpt.setText(_translate("MainWindow", "UEnable Transport"))
         self.pushButton_tpt_reset.setText(_translate("MainWindow", "Reset"))
         self.pushButton_tpt_home.setText(_translate("MainWindow", "Home"))
         self.cb_auto_home.setText(_translate("MainWindow", "Return to home"))

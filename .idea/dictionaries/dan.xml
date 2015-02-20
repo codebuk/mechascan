@@ -4,17 +4,25 @@
       <w>asctime</w>
       <w>autofocus</w>
       <w>autozero</w>
+      <w>capturetarget</w>
       <w>comms</w>
       <w>cygwin</w>
       <w>devicemap</w>
       <w>devs</w>
       <w>ektapro</w>
+      <w>gphoto</w>
+      <w>grec</w>
       <w>hoch</w>
       <w>levelname</w>
+      <w>logit</w>
+      <w>maxval</w>
       <w>mechascan</w>
       <w>msecs</w>
+      <w>sdram</w>
       <w>serialcomm</w>
+      <w>svgz</w>
       <w>tyrrell</w>
+      <w>wbmp</w>
       <w>xmlns</w>
       <w>xxxx</w>
     </words>

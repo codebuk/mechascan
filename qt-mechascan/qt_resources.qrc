@@ -1,4 +1,3 @@
-<!--suppress XmlUnboundNsPrefix -->
 <RCC>
     <qresource prefix="/icons">
         <file>resources/ic_camera_alt_48px.svg</file>
