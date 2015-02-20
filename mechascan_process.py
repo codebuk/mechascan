@@ -94,7 +94,7 @@ class process:
                 if (self.scan_state == scan_state.stopped):
                     self.msg_queue.put("Stopping scanning")
                     break
-                if (self.tpt_enabled):
+                if (self.tpt_enabled and not scan == scan_type.current):
                     while (self.tpt.get_status(busy=True, debug=False)): pass
                     if (self.capture_settle_delay > 0 ):
                         log.info("settle delay (ms) :" + str(self.capture_settle_delay))

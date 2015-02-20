@@ -77,7 +77,7 @@ class mw(QMainWindow, Ui_MainWindow):
 
     def scan (self):
         if self.msp_update_from_gui():
-            self.msp.scan_threaded(scan_type=msp.scan_type.start_end,
+            self.msp.scan_threaded(scan_type=scan_type.start_end,
                                    start=self.sb_start_slot.value(),
                                    end=self.sb_end_slot.value())
             # self.msp.scan()
