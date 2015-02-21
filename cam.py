@@ -26,18 +26,20 @@ class CameraDevice:
         self.path = None
         self.context = None
         self.connected = True
+        self.config = None
         self.port = "Auto"
         self.capture_ok = False
 
     def set_config(self, camera, context, name, value):
         # get configuration tree
         log.debug('set config')
-        config = gp.check_result(gp.gp_camera_get_config(camera, context))
-        widget_child = gp.check_result(gp.gp_widget_get_child_by_name(config, name))
+        # noinspection PyUnresolvedReferences
+        self.config = gp.check_result(gp.gp_camera_get_config(camera, context))
+        widget_child = gp.check_result(gp.gp_widget_get_child_by_name(self.config, name))
         # widget_type = gp.check_result(gp.gp_widget_get_type(widget_child))
         # widget_value = gp.check_result(gp.gp_widget_get_value(widget_child))
         gp.check_result(gp.gp_widget_set_value(widget_child, value))
-        gp.check_result(gp.gp_camera_set_config(camera, config, context))
+        gp.check_result(gp.gp_camera_set_config(camera, self.config, context))
         # log.info ( name + " type : " + str(widget_type) + " old value : " +
         # str(widget_value) + " new value : " + value)
 
@@ -83,10 +85,8 @@ class CameraDevice:
     def close(self):
         if self.connected:
             log.debug('cam device close')
-            try:
-                gp.check_result(gp.gp_camera_exit(self.camera, self.context))
-            except:
-                log.info("Error closing camera - not opened?")
+            gp.check_result(gp.gp_camera_exit(self.camera, self.context))
+            # log.info("Error closing camera - not opened?")
             self.connected = False
             return 0
 

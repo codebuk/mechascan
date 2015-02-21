@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 import re
 import logging
-
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
                     datefmt='%M:%S')
 log = logging.getLogger(__name__)
 
 from enumerate_serial import * 
-
 
 class GardasoftDevice:
     # communications port should be set to 9600 baud, no parity, 8 data bits, 1 stop bit.
@@ -41,7 +39,7 @@ class GardasoftDevice:
             collection = [9600, 115200]
             for speeds in collection:
                 self.ser = serial.serial_for_url(comm_port, speeds, timeout=.1, writeTimeout=.01)
-                log.info("Port opened: " + port)
+                log.info("Port opened: " + comm_port)
                 try:
                     fcntl.flock(self.ser, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 except IOError:

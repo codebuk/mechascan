@@ -4,10 +4,11 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QGraphicsScene, QGraphic
                              QMenu, QDialog, QFileDialog, QMessageBox, QFrame, QRubberBand, QLabel,
                              QProgressBar)
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
-# from gi.repository import GExiv2
+from gi.repository import GExiv2
 from functools import partial
 import os
 import sys
+from random import random
 import editimage
 import preferences
 from fileimage import read_list, write_list
@@ -27,9 +28,27 @@ logit = logging.getLogger('gphoto2')
 logit.setLevel(logging.INFO)
 
 
-class mw(QMainWindow, Ui_MainWindow):
+class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
     def __init__(self):
-        super(mw, self).__init__()
+        super(MechascanSlideGUI, self).__init__()
+        self.fname = ''
+        self.lbl_led_status = ''
+        self.lbl_tpt_status = ''
+        self.lbl_cam_status = ''
+        self.lbl_slot_status = ''
+        self.auto_orient = True
+        self.slide_delay = 0
+        self.quality = 0
+
+        self.progress = None
+        self.popup = None
+        self.pixmap = None
+        self.ss_timer = None
+
+        self.filelist = []
+        self.img_index = 0
+        self.last_file = 0
+
         self.msg_queue = Queue()
         self.file_queue = Queue()
         self.msp = mechascan_process.Process(self.msg_queue, self.file_queue)
@@ -55,17 +74,20 @@ class mw(QMainWindow, Ui_MainWindow):
 
         self.create_actions()
         self.create_menu()
-        self.create_dict()
+        self.orient_dict = self.create_dict()
         self.slides_next = True
 
         self.setContextMenuPolicy(Qt.CustomContextMenu)
+        # noinspection PyUnresolvedReferences
         self.customContextMenuRequested.connect(self.show_menu)
 
         self.read_prefs()
+        # noinspection PyTypeChecker,PyCallByClass
         self.pics_dir = os.path.expanduser('~/Pictures') or QDir.currentPath(self)
         # we use a timer to process status updates from the process module
         #we could have used signals but I did not want to make the module dependant on qt
         self.timer = QtCore.QTimer()
+        # noinspection PyUnresolvedReferences
         self.timer.timeout.connect(self.update_gui)
         self.timer.start(5)
         self.resize(1000, 600)
@@ -106,10 +128,9 @@ class mw(QMainWindow, Ui_MainWindow):
     def update_gui(self):
 
         # empty msg queue - just grab the last message for display as user will
-        #only be able to see the last messsage
+        # only be able to see the last message
         msg = ""
         while not self.msg_queue.empty():
-            msg = ""
             try:
                 msg = self.msg_queue.get_nowait()
                 log.info(msg)
@@ -131,9 +152,13 @@ class mw(QMainWindow, Ui_MainWindow):
             self.fname = file
             self.reload_img()
 
+        # noinspection PyUnresolvedReferences
         self.lbl_led_status.setText("LED: " + self.msp.led_port)
+        # noinspection PyUnresolvedReferences
         self.lbl_tpt_status.setText("Transport: " + self.msp.tpt_port)
+        # noinspection PyUnresolvedReferences
         self.lbl_cam_status.setText("Camera: " + self.msp.cam_port)
+        # noinspection PyUnresolvedReferences
         self.lbl_slot_status.setText("Slot: " + str(self.msp.get_slot()))
         if self.sb_start_slot.maximum() != self.msp.tpt.tray_size:
             self.sb_start_slot.setMaximum(self.msp.tpt.tray_size)
@@ -157,11 +182,13 @@ class mw(QMainWindow, Ui_MainWindow):
         if self.msp.cam_enabled and not self.msp.cam.connected:
             msg += "Camera not connected"
         if msg:
+            # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
             QMessageBox.information(self, 'Can not start scanning', msg)
             return False
         else:
             return True
 
+    # noinspection PyUnresolvedReferences
     def create_actions(self):
         # connect to uic generated objects
         self.tb_play.clicked.connect(self.scan)
@@ -191,8 +218,8 @@ class mw(QMainWindow, Ui_MainWindow):
         self.rotright_act.triggered.connect(partial(self.img_rotate, 90))
         self.fliph_act.triggered.connect(partial(self.img_flip, -1, 1))
         self.flipv_act.triggered.connect(partial(self.img_flip, 1, -1))
-        self.resize_act.triggered.connect(self.resize_img)
-        self.crop_act.triggered.connect(self.crop_img)
+        self.resize_act.triggered.connect(self.resize_image)
+        self.crop_act.triggered.connect(self.crop_image)
         self.zin_act.triggered.connect(partial(self.img_view.zoom, 1.1))
         self.zout_act.triggered.connect(partial(self.img_view.zoom, 1 / 1.1))
         self.fit_win_act.triggered.connect(self.zoom_default)
@@ -251,8 +278,9 @@ class mw(QMainWindow, Ui_MainWindow):
         for act in end_acts:
             self.popup.addAction(act)
 
-        self.action_list = main_acts + edit_acts1 + edit_acts2 + view_acts + help_acts + end_acts
-        for act in self.action_list:
+        # was self.
+        action_list = main_acts + edit_acts1 + edit_acts2 + view_acts + help_acts + end_acts
+        for act in action_list:
             self.addAction(act)
 
     def show_menu(self, pos):
@@ -260,28 +288,31 @@ class mw(QMainWindow, Ui_MainWindow):
 
     def create_dict(self):
         """Create a dictionary to handle auto-orientation."""
-        self.orient_dict = {None: self.load_img,
-                            '1': self.load_img,
-                            '2': partial(self.img_flip, -1, 1),
-                            '3': partial(self.img_rotate, 180),
-                            '4': partial(self.img_flip, -1, 1),
-                            '5': self.img_rotate_fliph,
-                            '6': partial(self.img_rotate, 90),
-                            '7': self.img_rotate_flipv,
-                            '8': partial(self.img_rotate, 270)}
+        return {None: self.load_img,
+                '1': self.load_img,
+                '2': partial(self.img_flip, -1, 1),
+                '3': partial(self.img_rotate, 180),
+                '4': partial(self.img_flip, -1, 1),
+                '5': self.img_rotate_flip_horizontal,
+                '6': partial(self.img_rotate, 90),
+                '7': self.img_rotate_flip_vertical,
+                '8': partial(self.img_rotate, 270)}
 
     def read_prefs(self):
         """Parse the preferences from the config file, or set default values."""
+        conf = preferences.Config()
         try:
-            conf = preferences.Config()
             values = conf.read_config()
             self.auto_orient = values[0]
             self.slide_delay = values[1]
             self.quality = values[2]
-        except:
+        except KeyError:
             self.auto_orient = True
             self.slide_delay = 5
             self.quality = 90
+        except:
+            log.error("Unexpected error:", sys.exc_info()[0])
+            raise
         self.reload_img = self.reload_auto if self.auto_orient else self.reload_nonauto
 
     def set_prefs(self):
@@ -296,6 +327,7 @@ class mw(QMainWindow, Ui_MainWindow):
         self.reload_img = self.reload_auto if self.auto_orient else self.reload_nonauto
 
     def open_dir(self):
+        # noinspection PyCallByClass,PyTypeChecker
         fname = QFileDialog.getExistingDirectory(self)
         # .getOpenFileName(self, 'Open File', self.pics_dir)[0]
         if fname:
@@ -305,9 +337,11 @@ class mw(QMainWindow, Ui_MainWindow):
                 else:
                     self.open_img(fname)
             else:
+                # noinspection PyArgumentList,PyCallByClass,PyTypeChecker
                 QMessageBox.information(self, 'Error', 'Cannot load {} images.'.format(fname.rsplit('.', 1)[1]))
 
     def open(self, new_win=False):
+        # noinspection PyArgumentList,PyCallByClass,PyTypeChecker
         fname = QFileDialog.getOpenFileName(self, 'Open File', self.pics_dir)[0]
         if fname:
             if fname.lower().endswith(read_list()):
@@ -316,6 +350,7 @@ class mw(QMainWindow, Ui_MainWindow):
                 else:
                     self.open_img(fname)
             else:
+                # noinspection PyArgumentList,PyCallByClass,PyTypeChecker
                 QMessageBox.information(self, 'Error', 'Cannot load {} images.'.format(fname.rsplit('.', 1)[1]))
 
     def open_img(self, fname):
@@ -336,18 +371,21 @@ class mw(QMainWindow, Ui_MainWindow):
 
     def get_img(self):
         """Get image from fname and create pixmap."""
-        image = QImage(self.fname)
-        self.pixmap = QPixmap.fromImage(image)
+        # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
+        self.pixmap = QPixmap.fromImage(QImage(self.fname))
         self.setWindowTitle(self.fname.rsplit('/', 1)[1])
 
     def reload_auto(self):
         """Load a new image with auto-orientation."""
         self.get_img()
-        try:
-            orient = GExiv2.Metadata(self.fname)['Exif.Image.Orientation']
-            self.orient_dict[orient]()
-        except:
-            self.load_img()
+        # try:
+        exif = GExiv2.Metadata(self.fname)
+        exif.get_exif_tags()
+        orient = GExiv2.Metadata()
+        #orient. self.fname)['Exif.Image.Orientation']
+        self.orient_dict[orient]()
+        #except:
+        #self.load_img()
 
     def reload_nonauto(self):
         """Load a new image without auto-orientation."""
@@ -384,11 +422,11 @@ class mw(QMainWindow, Ui_MainWindow):
         """Toggle best fit / original size loading."""
         if self.fit_win_act.isChecked():
             self.load_img = self.load_img_fit
-            self.create_dict()
+            #self.create_dict()
             self.load_img()
         else:
             self.load_img = self.load_img_1to1
-            self.create_dict()
+            #self.create_dict()
             self.load_img()
 
     def img_rotate(self, angle):
@@ -399,15 +437,15 @@ class mw(QMainWindow, Ui_MainWindow):
         self.pixmap = self.pixmap.transformed(QTransform().scale(x, y))
         self.load_img()
 
-    def img_rotate_fliph(self):
+    def img_rotate_flip_horizontal(self):
         self.img_rotate(90)
         self.img_flip(-1, 1)
 
-    def img_rotate_flipv(self):
+    def img_rotate_flip_vertical(self):
         self.img_rotate(90)
         self.img_flip(1, -1)
 
-    def resize_img(self):
+    def resize_image(self):
         dialog = editimage.ResizeDialog(self, self.pixmap.width(), self.pixmap.height())
         if dialog.exec_() == QDialog.Accepted:
             width = dialog.get_width.value()
@@ -416,14 +454,14 @@ class mw(QMainWindow, Ui_MainWindow):
                                              Qt.SmoothTransformation)
             self.save_img()
 
-    def crop_img(self):
+    def crop_image(self):
         self.img_view.setup_crop(self.pixmap.width(), self.pixmap.height())
         dialog = editimage.CropDialog(self, self.pixmap.width(), self.pixmap.height())
         if dialog.exec_() == QDialog.Accepted:
             coords = self.img_view.get_coords()
             self.pixmap = self.pixmap.copy(*coords)
             self.load_img()
-        self.img_view.rband.hide()
+        self.img_view.rubber_band.hide()
 
     def toggle_fs(self):
         if self.fulls_act.isChecked():
@@ -442,9 +480,11 @@ class mw(QMainWindow, Ui_MainWindow):
 
     def start_ss(self):
         self.timer = QTimer()
+        # noinspection PyUnresolvedReferences
         self.timer.timeout.connect(self.update_img)
         self.timer.start(self.slide_delay * 1000)
         self.ss_timer = QTimer()
+        # noinspection PyUnresolvedReferences
         self.ss_timer.timeout.connect(self.update_img)
         self.ss_timer.start(60000)
 
@@ -459,9 +499,11 @@ class mw(QMainWindow, Ui_MainWindow):
         self.slides_next = self.ss_next_act.isChecked()
 
     def save_img(self):
+        # noinspection PyCallByClass,PyTypeChecker
         fname = QFileDialog.getSaveFileName(self, 'Save your image', self.fname)[0]
         if fname:
             if fname.lower().endswith(write_list()):
+                # noinspection PyCallByClass,PyTypeChecker
                 keep_exif = QMessageBox.question(self, 'Save exif data',
                                                  'Do you want to save the picture metadata?', QMessageBox.Yes |
                                                  QMessageBox.No, QMessageBox.Yes)
@@ -475,6 +517,7 @@ class mw(QMainWindow, Ui_MainWindow):
                         saved_exif.set_orientation(GExiv2.Orientation.NORMAL)
                         saved_exif.save_file()
             else:
+                # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
                 QMessageBox.information(self, 'Error', 'Cannot save {} images.'.format(fname.rsplit('.', 1)[1]))
 
     def print_img(self):
@@ -492,10 +535,10 @@ class mw(QMainWindow, Ui_MainWindow):
 
     def resizeEvent(self, event=None):
         if self.fit_win_act.isChecked():
-            try:
-                self.load_img()
-            except:
-                pass
+            # try:
+            self.load_img()
+            #except:
+            #    pass
 
     def get_props(self):
         """Get the properties of the current image."""
@@ -507,6 +550,7 @@ class mw(QMainWindow, Ui_MainWindow):
 
     def about_cm(self):
         about_message = 'Version: 0.0.0\nAuthor: Dan Tyrrell\nwww.breager.com'
+        # noinspection PyCallByClass,PyArgumentList
         QMessageBox.about(self, 'About Mechaslide', about_message)
 
 
@@ -514,6 +558,8 @@ class ImageView(QGraphicsView):
     # todo: parent is named - why?
     def __init__(self, parent=None):
         QGraphicsView.__init__(self, parent)
+
+        self.rubber_band = None
 
         self.go_prev_img = parent.go_prev_img
         self.go_next_img = parent.go_next_img
@@ -539,27 +585,27 @@ class ImageView(QGraphicsView):
         self.setDragMode(QGraphicsView.NoDrag)
         QGraphicsView.mouseReleaseEvent(self, event)
 
-    def zoom(self, zoomratio):
-        self.scale(zoomratio, zoomratio)
+    def zoom(self, zoom_ratio):
+        self.scale(zoom_ratio, zoom_ratio)
 
     def wheelEvent(self, event):
-        zoomratio = 1.1
+        zoom_ratio = 1.1
         if event.angleDelta().y() < 0:
-            zoomratio = 1.0 / zoomratio
-        self.scale(zoomratio, zoomratio)
+            zoom_ratio = 1.0 / zoom_ratio
+        self.scale(zoom_ratio, zoom_ratio)
 
     def setup_crop(self, width, height):
-        self.rband = QRubberBand(QRubberBand.Rectangle, self)
+        self.rubber_band = QRubberBand(QRubberBand.Rectangle, self)
         coords = self.mapFromScene(0, 0, width, height)
-        self.rband.setGeometry(QRect(coords.boundingRect()))
-        self.rband.show()
+        self.rubber_band.setGeometry(QRect(coords.boundingRect()))
+        self.rubber_band.show()
 
     def crop_draw(self, x, y, width, height):
         coords = self.mapFromScene(x, y, width, height)
-        self.rband.setGeometry(QRect(coords.boundingRect()))
+        self.rubber_band.setGeometry(QRect(coords.boundingRect()))
 
     def get_coords(self):
-        rect = self.rband.geometry()
+        rect = self.rubber_band.geometry()
         size = self.mapToScene(rect).boundingRect()
         x = int(size.x())
         y = int(size.y())
@@ -571,6 +617,7 @@ class ImageView(QGraphicsView):
 class ImageViewer(QApplication):
     def __init__(self, args):
         QApplication.__init__(self, args)
+        self.win = None
         self.args = args
 
     def startup(self):
@@ -586,7 +633,7 @@ class ImageViewer(QApplication):
                 self.open_win(fname)
 
     def open_win(self, fname):
-        self.win = mw()
+        self.win = MechascanSlideGUI()
         self.win.show()
         if fname:
             self.win.open_img(fname)

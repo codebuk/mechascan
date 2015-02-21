@@ -7,6 +7,8 @@ http://www.quadrumedia.com/film/slides
 
 Fedora 21 install
 
+> sudo pip3 install exifread
+
 Manually install libgphoto2 
 
 Edit /etc/ld.so.conf

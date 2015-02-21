@@ -5,11 +5,17 @@
       <w>autofocus</w>
       <w>autozero</w>
       <w>capturetarget</w>
+      <w>centralwidget</w>
       <w>comms</w>
+      <w>coords</w>
       <w>cygwin</w>
       <w>devicemap</w>
       <w>devs</w>
+      <w>dirname</w>
       <w>ektapro</w>
+      <w>exiv</w>
+      <w>filelist</w>
+      <w>fname</w>
       <w>gphoto</w>
       <w>grec</w>
       <w>hoch</w>
@@ -17,9 +23,16 @@
       <w>logit</w>
       <w>maxval</w>
       <w>mechascan</w>
+      <w>mechaslide</w>
       <w>msecs</w>
+      <w>nonauto</w>
+      <w>pixitem</w>
+      <w>pixmap</w>
+      <w>prefs</w>
+      <w>qtdesigner</w>
       <w>sdram</w>
       <w>serialcomm</w>
+      <w>slideshow</w>
       <w>svgz</w>
       <w>tyrrell</w>
       <w>wbmp</w>
