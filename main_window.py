@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file './qt-mechascan/mainwindow.ui'
 #
-# Created: Sat Feb 21 20:43:00 2015
+# Created: Sun Feb 22 21:55:37 2015
 #      by: PyQt5 UI code generator 5.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(741, 754)
+        MainWindow.resize(793, 750)
         MainWindow.setStyleSheet("font: 9pt \"Cantarell\";\n"
 "QGroupBox {\n"
 "    border: 2px solid gray;\n"
@@ -22,8 +22,7 @@ class Ui_MainWindow(object):
 "QGroupBox::title {\n"
 "    subcontrol-origin: margin;\n"
 "    subcontrol-position: top center; /* position at the top center */\n"
-"    padding: 0 3px;\n"
-"    \n"
+"    padding: 0 3px;   \n"
 "}\n"
 "\n"
 "\n"
@@ -37,7 +36,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 741, 23))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 793, 23))
         self.menubar.setObjectName("menubar")
         self.menuMechascan = QtWidgets.QMenu(self.menubar)
         self.menuMechascan.setObjectName("menuMechascan")
@@ -128,8 +127,8 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.dock_hardware.sizePolicy().hasHeightForWidth())
         self.dock_hardware.setSizePolicy(sizePolicy)
-        self.dock_hardware.setMinimumSize(QtCore.QSize(170, 600))
-        self.dock_hardware.setMaximumSize(QtCore.QSize(170, 524287))
+        self.dock_hardware.setMinimumSize(QtCore.QSize(200, 600))
+        self.dock_hardware.setMaximumSize(QtCore.QSize(200, 524287))
         self.dock_hardware.setFloating(False)
         self.dock_hardware.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable|QtWidgets.QDockWidget.DockWidgetMovable)
         self.dock_hardware.setAllowedAreas(QtCore.Qt.BottomDockWidgetArea|QtCore.Qt.RightDockWidgetArea|QtCore.Qt.TopDockWidgetArea)
@@ -198,7 +197,7 @@ class Ui_MainWindow(object):
         self.sb_current_slot.setObjectName("sb_current_slot")
         self.gridLayout_4.addWidget(self.sb_current_slot, 2, 1, 1, 1)
         self.cb_auto_home = QtWidgets.QCheckBox(self.groupBox)
-        self.cb_auto_home.setStyleSheet("font: 9pt \"Cqlineargradient(spread:pad, x1:0, y1:0, x2:1, y")
+        self.cb_auto_home.setStyleSheet("")
         self.cb_auto_home.setChecked(True)
         self.cb_auto_home.setTristate(False)
         self.cb_auto_home.setObjectName("cb_auto_home")
@@ -425,7 +424,7 @@ class Ui_MainWindow(object):
         self.tb_next.setShortcut(_translate("MainWindow", "N"))
         self.groupBox.setTitle(_translate("MainWindow", "Transport"))
         self.label_5.setText(_translate("MainWindow", "Goto Slot"))
-        self.check_tpt.setText(_translate("MainWindow", "UEnable Transport"))
+        self.check_tpt.setText(_translate("MainWindow", "Use Transport"))
         self.pushButton_tpt_reset.setText(_translate("MainWindow", "Reset"))
         self.pushButton_tpt_home.setText(_translate("MainWindow", "Home"))
         self.cb_auto_home.setText(_translate("MainWindow", "Return to home"))

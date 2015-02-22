@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QGraphicsScene, QGraphic
                              QMenu, QDialog, QFileDialog, QMessageBox, QFrame, QRubberBand, QLabel,
                              QProgressBar)
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
-from gi.repository import GExiv2
 from functools import partial
 import os
 import sys
@@ -18,6 +17,10 @@ from mechascan_process import ScanType
 from queue import Queue
 # ui generated code
 from main_window import *
+
+# external libs
+#import exifread
+
 
 logging.basicConfig(level=logging.DEBUG,
                     format="%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s",
@@ -48,6 +51,7 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.filelist = []
         self.img_index = 0
         self.last_file = 0
+        self.slides_next = True
 
         self.msg_queue = Queue()
         self.file_queue = Queue()
@@ -68,19 +72,14 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.horizontalLayout.addWidget(self.img_view)  # add widget to uic generated form
 
         self.reload_img = self.reload_auto
-
         # self.open_new = self.parent.open_win
         # self.exit = self.parent().closeAllWindows
-
         self.create_actions()
         self.create_menu()
         self.orient_dict = self.create_dict()
-        self.slides_next = True
-
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         # noinspection PyUnresolvedReferences
         self.customContextMenuRequested.connect(self.show_menu)
-
         self.read_prefs()
         # noinspection PyTypeChecker,PyCallByClass
         self.pics_dir = os.path.expanduser('~/Pictures') or QDir.currentPath(self)
@@ -286,21 +285,9 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
     def show_menu(self, pos):
         self.popup.popup(self.mapToGlobal(pos))
 
-    def create_dict(self):
-        """Create a dictionary to handle auto-orientation."""
-        return {None: self.load_img,
-                '1': self.load_img,
-                '2': partial(self.img_flip, -1, 1),
-                '3': partial(self.img_rotate, 180),
-                '4': partial(self.img_flip, -1, 1),
-                '5': self.img_rotate_flip_horizontal,
-                '6': partial(self.img_rotate, 90),
-                '7': self.img_rotate_flip_vertical,
-                '8': partial(self.img_rotate, 270)}
-
     def read_prefs(self):
         """Parse the preferences from the config file, or set default values."""
-        conf = preferences.Config()
+        conf = preferences.Config(__name__ + ".ini")
         try:
             values = conf.read_config()
             self.auto_orient = values[0]
@@ -322,7 +309,7 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
             self.auto_orient = dialog.auto_orient
             self.slide_delay = dialog.delay_spinb.value()
             self.quality = dialog.qual_spinb.value()
-            conf = preferences.Config()
+            conf = preferences.Config(__name__ + '.ini')
             conf.write_config(self.auto_orient, self.slide_delay, self.quality)
         self.reload_img = self.reload_auto if self.auto_orient else self.reload_nonauto
 
@@ -375,17 +362,33 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.pixmap = QPixmap.fromImage(QImage(self.fname))
         self.setWindowTitle(self.fname.rsplit('/', 1)[1])
 
+    def create_dict(self):
+        """Create a dictionary to handle auto-orientation."""
+        return {None: self.load_img,
+                '1': self.load_img,
+                '2': partial(self.img_flip, -1, 1),
+                '3': partial(self.img_rotate, 180),
+                '4': partial(self.img_flip, -1, 1),
+                '5': self.img_rotate_flip_horizontal,
+                '6': partial(self.img_rotate, 90),
+                '7': self.img_rotate_flip_vertical,
+                '8': partial(self.img_rotate, 270)}
+
     def reload_auto(self):
         """Load a new image with auto-orientation."""
         self.get_img()
         # try:
-        exif = GExiv2.Metadata(self.fname)
-        exif.get_exif_tags()
-        orient = GExiv2.Metadata()
+        # f = open(self.fname, 'rb')
+        #tags = exifread.process_file(f, stop_tag='Image Orientation', details=False)
+        #orient = tags.key('Image Orientation')
+        #tags = exifread.process_file(f, ')
+        #exif = GExiv2.Metadata(self.fname)
+        #exif.get_exif_tags()
+        #orient = GExiv2.Metadata()
         #orient. self.fname)['Exif.Image.Orientation']
-        self.orient_dict[orient]()
+        #self.orient_dict[orient]()
         #except:
-        #self.load_img()
+        self.load_img()
 
     def reload_nonauto(self):
         """Load a new image without auto-orientation."""
@@ -395,6 +398,7 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
     def load_img_fit(self):
         """Load the image to fit the window."""
         self.scene.clear()
+        #todo
         self.scene.addPixmap(self.pixmap)
         self.scene.setSceneRect(0, 0, self.pixmap.width(), self.pixmap.height())
         self.img_view.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
@@ -499,26 +503,28 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.slides_next = self.ss_next_act.isChecked()
 
     def save_img(self):
-        # noinspection PyCallByClass,PyTypeChecker
-        fname = QFileDialog.getSaveFileName(self, 'Save your image', self.fname)[0]
-        if fname:
-            if fname.lower().endswith(write_list()):
-                # noinspection PyCallByClass,PyTypeChecker
-                keep_exif = QMessageBox.question(self, 'Save exif data',
-                                                 'Do you want to save the picture metadata?', QMessageBox.Yes |
-                                                 QMessageBox.No, QMessageBox.Yes)
-                if keep_exif == QMessageBox.Yes:
-                    self.pixmap.save(fname, None, self.quality)
-                    exif = GExiv2.Metadata(self.fname)
-                    if exif:
-                        saved_exif = GExiv2.Metadata(fname)
-                        for tag in exif.get_exif_tags():
-                            saved_exif[tag] = exif[tag]
-                        saved_exif.set_orientation(GExiv2.Orientation.NORMAL)
-                        saved_exif.save_file()
-            else:
-                # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
-                QMessageBox.information(self, 'Error', 'Cannot save {} images.'.format(fname.rsplit('.', 1)[1]))
+        pass
+
+    # # noinspection PyCallByClass,PyTypeChecker
+    #     fname = QFileDialog.getSaveFileName(self, 'Save your image', self.fname)[0]
+    #     if fname:
+    #         if fname.lower().endswith(write_list()):
+    #             # noinspection PyCallByClass,PyTypeChecker
+    #             keep_exif = QMessageBox.question(self, 'Save exif data',
+    #                                              'Do you want to save the picture metadata?', QMessageBox.Yes |
+    #                                              QMessageBox.No, QMessageBox.Yes)
+    #             if keep_exif == QMessageBox.Yes:
+    #                 self.pixmap.save(fname, None, self.quality)
+    #                 exif = GExiv2.Metadata(self.fname)
+    #                 if exif:
+    #                     saved_exif = GExiv2.Metadata(fname)
+    #                     for tag in exif.get_exif_tags():
+    #                         saved_exif[tag] = exif[tag]
+    #                     saved_exif.set_orientation(GExiv2.Orientation.NORMAL)
+    #                     saved_exif.save_file()
+    #         else:
+    #             # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
+    #             QMessageBox.information(self, 'Error', 'Cannot save {} images.'.format(fname.rsplit('.', 1)[1]))
 
     def print_img(self):
         dialog = QPrintDialog(self.printer, self)
@@ -534,11 +540,9 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
             painter.drawPixmap(0, 0, self.pixmap)
 
     def resizeEvent(self, event=None):
-        if self.fit_win_act.isChecked():
-            # try:
+        # originally no check for valid image file resulted in errors
+        if self.fit_win_act.isChecked() and len(self.fname):
             self.load_img()
-            #except:
-            #    pass
 
     def get_props(self):
         """Get the properties of the current image."""
@@ -550,7 +554,7 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
 
     def about_cm(self):
         about_message = 'Version: 0.0.0\nAuthor: Dan Tyrrell\nwww.breager.com'
-        # noinspection PyCallByClass,PyArgumentList
+        # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
         QMessageBox.about(self, 'About Mechaslide', about_message)
 
 

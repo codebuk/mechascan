@@ -8,12 +8,13 @@ log = logging.getLogger(__name__)
 
 class Config(object):
     """Read, write / create config file."""
-    def __init__(self):
+
+    def __init__(self, config_file):
         config_dir = os.environ.get('XDG_CONFIG_HOME') or os.path.expanduser('~/.config')
-        self.config_dir = os.path.join(config_dir, 'cheesemaker')
+        self.config_dir = os.path.join(config_dir, config_file)
         if not os.path.isdir(self.config_dir):
             os.mkdir(self.config_dir)
-        self.config_file = os.path.join(self.config_dir, 'cheesemaker.ini')
+        self.config_file = os.path.join(self.config_dir, config_file)
 
         self.config = configparser.ConfigParser()
 

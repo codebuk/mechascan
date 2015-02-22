@@ -23,14 +23,13 @@
 """
 from enumerate_serial import *
 import logging
-
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
                     datefmt='%M:%S')
 log = logging.getLogger(__name__)
 
 
-class EktaproFailed(Exception):
+class EktaproError(Exception):
     pass
 
 
@@ -45,43 +44,46 @@ class EktaproDevice:
         self.max_display_tray = 140
         self.info = bytearray()
         self.id = 0
-        self.version = None
+        self.version = ""
         self.type = 0
         self.serial_device = None
-        self.port = None
+        self.port = ""
         self.connected = 0
-        self.standby = 0
-        self.auto_focus = None
-        self.auto_zero = None
-        self.low_lamp = None
-        self.active_lamp = None
-        self.high_light = None
-        self.unknown_flag1 = None
-        self.unknown_flag2 = None
-        self.lamp1_status = None
-        self.lamp2_status = None
-        self.power_frequency = None
-        self.status = None
-        self.at_zero_position = None
-        self.slide_lift_motor_error = None
-        self.tray_transport_motor_error = None
-        self.command_error = None
-        self.overrun_error = None
-        self.buffer_overflow_error = None
-        self.framing_error = None
+        self.status_valid = False
 
-        # initialise internal vars
-        self.get_system_return()
+        # flags from the projector
+        self.standby = 0
+        self.auto_focus = False
+        self.auto_zero = False
+        self.low_lamp = False
+        self.active_lamp = 0
+        self.high_light = False
+        self.unknown_flag1 = False
+        self.unknown_flag2 = False
+        self.lamp1_status = False
+        self.lamp2_status = False
+        self.power_frequency = 0
+        self.status = False
+        self.at_zero_position = False
+        self.slide_lift_motor_error = False
+        self.tray_transport_motor_error = False
+        self.command_error = False
+        self.overrun_error = False
+        self.buffer_overflow_error = False
+        self.framing_error = False
 
     def open_port(self, comm_port):
-        self.close()
+        #self.close()
         log.info("Checking port: " + comm_port)
         try:
             self.serial_device = serial.serial_for_url(comm_port, 9600, timeout=.1, writeTimeout=.1)
             try:
                 fcntl.flock(self.serial_device, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                log.info("Write-lock file ok: " + comm_port)
             except IOError:
                 log.info("Can not immediately write-lock file: " + comm_port)
+                self.serial_device = None
+                return False
             else:
                 self.serial_device.write(EktaproCommand(0).status_system_return().to_data())
                 self.info = self.serial_device.read(5)
@@ -95,12 +97,12 @@ class EktaproDevice:
                 else:
                     self.port = comm_port
                     self.connected = 1
-                    return 1
+                    return True
         except serial.SerialException:
             pass
         except IOError:
             logging.error("Not a Ektapro device")
-        return 0
+        return False
 
     def open(self, comm_port):
         if comm_port is None:
@@ -110,7 +112,8 @@ class EktaproDevice:
                     break
         else:
             self.open_port(comm_port)
-        self.get_status()
+        if self.connected:
+            self.reset()  # possible command error from serial bus scanning needs to be cleared.
 
     def close(self):
         if self.connected:
@@ -164,6 +167,10 @@ class EktaproDevice:
 
     def reset(self):
         self.comms(EktaproCommand(self.id).direct_reset_system())
+        time.sleep(10)
+        self.get_system_status()  # update internal status
+        self.get_system_return()
+        self.get_system_status()
 
     def clear_error_flag(self):
         self.comms(EktaproCommand(self.id).direct_clear_error_flag())
@@ -194,9 +201,9 @@ class EktaproDevice:
             else:
                 self.slide = int(str(reply[2]))
 
-    def get_status_busy(self):
-        # log.error ( str(self.is_busy) )
-        return self.is_busy
+    # def get_status_busy(self):
+    #    log.error ( str(self.is_busy) )
+    #    return self.is_busy
 
     def get_status(self, busy=False, debug=True):
         self.get_system_status(debug=debug)
@@ -216,10 +223,11 @@ class EktaproDevice:
         if len(msg):
             log.error("Get_status error detected: " + msg)  # could raise error here?
             log.debug(self.get_details())
-            self.clear_error_flag()
-            self.get_system_status()
-            log.debug(self.get_details())
-            raise EktaproFailed(msg)
+            # self.clear_error_flag()
+            #self.get_system_status()
+            #log.debug(self.get_details())
+            #
+            raise EktaproError(msg)
         if busy:
             return
         else:
@@ -232,7 +240,6 @@ class EktaproDevice:
             self.info = self.comms(EktaproCommand(self.id).status_system_return(), read_bytes=5, debug=debug)
         else:
             self.info = bytearray()
-        # noinspection PyTypeChecker
         if self.connected and len(self.info) == 5:
             info = self.info
             # self.id = info[0] / 16 - do not change based on returned values
@@ -265,8 +272,9 @@ class EktaproDevice:
             if not (reply[0] % 8 == 6) or not (reply[2] % 4 == 3):
                 # or not (ord(s[1]) % 64 == 3) \ #should be 11XX XXXX don't check for now
                 log.error("get_status invalid response")
-                raise IOError("Invalid response")
+                raise EktaproError("Invalid response")
             # self.projector_id = ord(s[0]) / 8 - do not change based on returned values
+            self.status_valid = True
             self.unknown_flag1 = (reply[1] & 16) // 16  # this is undocumented - seems to be on after reset process
             self.unknown_flag2 = (reply[1] & 32) // 32
             self.lamp1_status = (reply[1] & 8) // 8
@@ -280,19 +288,19 @@ class EktaproDevice:
             self.buffer_overflow_error = (reply[2] & 8) // 8
             self.framing_error = (reply[2] & 4) // 4
         else:
-            self.unknown_flag1 = None
-            self.unknown_flag2 = None
-            self.lamp1_status = None
-            self.lamp2_status = None
-            self.status = None
-            self.at_zero_position = None
-            self.slide_lift_motor_error = None
-            self.tray_transport_motor_error = None
-            self.command_error = None
-            self.overrun_error = None
-            self.buffer_overflow_error = None
-            self.framing_error = None
-
+            self.status_valid = False
+            self.unknown_flag1 = 0
+            self.unknown_flag2 = 0
+            self.lamp1_status = 0
+            self.lamp2_status = 0
+            self.status = 0
+            self.at_zero_position = 0
+            self.slide_lift_motor_error = 0
+            self.tray_transport_motor_error = 0
+            self.command_error = 0
+            self.overrun_error = 0
+            self.buffer_overflow_error = 0
+            self.framing_error = 0
         if self.status == 1:
             self.is_busy = True
         else:
@@ -305,20 +313,27 @@ class EktaproDevice:
             log.debug("Send: " + str(command) + " hex: " + repr(command.to_data()) + " pre/post timeouts: " + str(
                 pre_timeout) + " - " + str(post_timeout))
         self.busy(pre_timeout, desc="pre timeout ")
-        if self.connected:
-            try:  # might be disconnected or port removed or....
-                self.serial_device.write(command.to_data())
-            except:
-                raise
+        if self.serial_device and not self.serial_device.closed:
+            # try:  # might be disconnected or port removed or....
+            self.serial_device.write(command.to_data())
+            #except:
+            #    raise EktaproError ""
         else:
-            log.debug("ignore - device not connected")
-        if self.connected and read_bytes:
-            try:
-                rec = self.serial_device.read(read_bytes)
-            except:
-                raise
+            log.debug("ignore serial write - device not connected")
+        if self.serial_device and not self.serial_device.closed and read_bytes:
+            # try:
+            rec = self.serial_device.read(read_bytes)
+            #except:
+            #    raise
+            if len(rec) != read_bytes:
+                msg = "Error reading from device Received: " + repr(rec) + \
+                      " len: " + str(len(rec)) + \
+                      " requested: " + str(read_bytes)
+                raise EktaproError(msg)
             if debug:
                 log.debug("Received: " + repr(rec) + " len: " + str(len(rec)))
+        elif read_bytes > 0:
+            log.debug("ignore serial read - device not connected")
         self.busy(post_timeout, desc="post timeout ")
         return rec
 

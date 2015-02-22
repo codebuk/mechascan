@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>741</width>
-    <height>754</height>
+    <width>793</width>
+    <height>750</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,8 +23,7 @@ QGroupBox {
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top center; /* position at the top center */
-    padding: 0 3px;
-    
+    padding: 0 3px;   
 }
 
 
@@ -49,7 +48,7 @@ QGroupBox::title {
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>741</width>
+     <width>793</width>
      <height>23</height>
     </rect>
    </property>
@@ -261,13 +260,13 @@ QGroupBox::title {
    </property>
    <property name="minimumSize">
     <size>
-     <width>170</width>
+     <width>200</width>
      <height>600</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
-     <width>170</width>
+     <width>200</width>
      <height>524287</height>
     </size>
    </property>
@@ -357,7 +356,7 @@ QGroupBox::title {
             <item row="0" column="0" colspan="2">
              <widget class="QCheckBox" name="check_tpt">
               <property name="text">
-               <string>UEnable Transport</string>
+               <string>Use Transport</string>
               </property>
               <property name="checked">
                <bool>true</bool>
@@ -403,7 +402,7 @@ QGroupBox::title {
             <item row="1" column="0" colspan="2">
              <widget class="QCheckBox" name="cb_auto_home">
               <property name="styleSheet">
-               <string notr="true">font: 9pt &quot;Cqlineargradient(spread:pad, x1:0, y1:0, x2:1, y</string>
+               <string notr="true"/>
               </property>
               <property name="text">
                <string>Return to home</string>
