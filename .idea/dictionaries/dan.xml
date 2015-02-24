@@ -13,7 +13,9 @@
       <w>devs</w>
       <w>dirname</w>
       <w>ektapro</w>
+      <w>exifread</w>
       <w>exiv</w>
+      <w>fileimage</w>
       <w>filelist</w>
       <w>fname</w>
       <w>gphoto</w>
@@ -30,9 +32,12 @@
       <w>pixmap</w>
       <w>prefs</w>
       <w>qtdesigner</w>
+      <w>qual</w>
+      <w>scrollwin</w>
       <w>sdram</w>
       <w>serialcomm</w>
       <w>slideshow</w>
+      <w>spinb</w>
       <w>svgz</w>
       <w>tyrrell</w>
       <w>wbmp</w>

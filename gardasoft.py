@@ -6,7 +6,8 @@ logging.basicConfig(level=logging.DEBUG,
                     datefmt='%M:%S')
 log = logging.getLogger(__name__)
 
-from enumerate_serial import * 
+from enumerate_serial import *
+
 
 class GardasoftDevice:
     # communications port should be set to 9600 baud, no parity, 8 data bits, 1 stop bit.
@@ -23,7 +24,7 @@ class GardasoftDevice:
         self.ver = ""
         self.connected = 0
         if comm_port is None:
-            ports = enumerate(check_lock=True)
+            ports = enumerate_physical_serial_ports(check_lock=True)
             for comm_port in ports:
                 if self.open_port(comm_port):
                     return True

@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-from glob import glob
 import serial
+import glob
 from serial import *
+
 import logging
 
-
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
+                    datefmt='%M:%S')
 log = logging.getLogger(__name__)
 
 
-def enumerate(check_lock=None):
+def enumerate_physical_serial_ports(check_lock=True):
     """Lists serial ports
 
     :raises EnvironmentError:
@@ -20,14 +23,17 @@ def enumerate(check_lock=None):
   
     if sys.platform == 'win32':
         # Iterate through registry because WMI does not show virtual serial ports
+        # noinspection PyUnresolvedReferences
         import winreg
 
+        # noinspection PyUnresolvedReferences
         try:
             key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'HARDWARE\DEVICEMAP\SERIALCOMM')
         except WindowsError:
             return []
         i = 0
         while True:
+            # noinspection PyUnresolvedReferences
             try:
                 ports.append(winreg.EnumValue(key, i)[1])
                 i += 1
@@ -46,6 +52,7 @@ def enumerate(check_lock=None):
                         log.debug("Port opened: " + path)
                         try:
                             fcntl.flock(ser, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                            log.info("Success. Unlocked port available: " + path)
                             ports.extend([path])
                         except IOError:
                             log.info("Can not immediately write-lock file as it is locked. Port is in use: " + path)
@@ -53,9 +60,11 @@ def enumerate(check_lock=None):
                         log.info("Can not open port: " + path)
                         raise
                 else:
+                    log.info("Success. Port available: " + path)
                     ports.extend([path])
 
-        for dev in glob('/dev/ttyS*'):
+        for dev in glob.glob('/dev/ttyS*'):
+            # to do add port locking check
             try:
                 comm_port = Serial(dev)
             except OSError:
@@ -64,9 +73,6 @@ def enumerate(check_lock=None):
                 log.debug(dev)
                 comm_port.close()
                 ports.append(dev)
-                
-    elif sys.platform.startswith('darwin'):
-        ports = glob.glob('/dev/tty.*')
 
     else:
         raise EnvironmentError('Unsupported platform')
@@ -74,9 +80,9 @@ def enumerate(check_lock=None):
 
 
 def script():
-    for comm_port in enumerate():
+    for comm_port in enumerate_physical_serial_ports():
         print(comm_port)
-    for comm_port in enumerate(check_lock=True):
+    for comm_port in enumerate_physical_serial_ports(check_lock=False):
         print(comm_port)
 
 if __name__ == "__main__":

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QLabel, QSpinBox, QCheckBox,
-        QGridLayout, QVBoxLayout, QScrollArea)
+                             QGridLayout, QVBoxLayout, QScrollArea)
 import os
 import configparser
 import logging
 log = logging.getLogger(__name__)
+
 
 class Config(object):
     """Read, write / create config file."""
@@ -24,7 +25,7 @@ class Config(object):
         orientation = com.getboolean('AutoOrientation')
         slide_delay = int(com['SlideTimeDelay'])
         quality = int(com['Quality'])
-        return (orientation, slide_delay, quality)
+        return orientation, slide_delay, quality
 
     def write_config(self, orientation, slide_delay, quality):
         self.config['Common'] = {}
@@ -34,6 +35,7 @@ class Config(object):
         com['Quality'] = str(quality)
         with open(self.config_file, 'w') as configfile:
             self.config.write(configfile)
+
 
 class PrefsDialog(QDialog):
     def __init__(self, parent):
@@ -50,6 +52,7 @@ class PrefsDialog(QDialog):
         layout.addWidget(QLabel('<b>Automatic orientation</b>'), 0, 0, 1, 2)
         self.orient_check = QCheckBox('Automatic orientation using image data')
         self.orient_check.setChecked(self.auto_orient)
+        # noinspection PyUnresolvedReferences
         self.orient_check.toggled.connect(self.orient)
         layout.addWidget(self.orient_check, 1, 0, 1, 2)
 
@@ -71,7 +74,9 @@ class PrefsDialog(QDialog):
         layout.addWidget(self.qual_spinb, 5, 1, 1, 1)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        # noinspection PyUnresolvedReferences
         buttons.accepted.connect(self.accept)
+        # noinspection PyUnresolvedReferences
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
@@ -80,6 +85,7 @@ class PrefsDialog(QDialog):
 
     def orient(self):
         self.auto_orient = self.orient_check.isChecked()
+
 
 class PropsDialog(QDialog):
     """Dialog displaying basic properties of the image."""
@@ -98,12 +104,15 @@ class PropsDialog(QDialog):
         layout.addWidget(QLabel(str(height)), 2, 1, 1, 1)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close)
+        # noinspection PyUnresolvedReferences
         buttons.accepted.connect(self.accept)
+        # noinspection PyUnresolvedReferences
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
         self.resize(200, 100)
         self.show()
+
 
 class HelpDialog(QDialog):
     def __init__(self, parent):
@@ -124,7 +133,9 @@ class HelpDialog(QDialog):
         layout.addWidget(scrollwin)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close)
+        # noinspection PyUnresolvedReferences
         buttons.accepted.connect(self.accept)
+        # noinspection PyUnresolvedReferences
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 

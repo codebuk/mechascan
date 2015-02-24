@@ -6,11 +6,10 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QGraphicsScene, QGraphic
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
 from functools import partial
 import os
-import sys
 from random import random
 import editimage
 import preferences
-from fileimage import read_list, write_list
+from fileimage import read_list  # write_list
 import logging
 import mechascan_process
 from mechascan_process import ScanType
@@ -313,19 +312,19 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
             conf.write_config(self.auto_orient, self.slide_delay, self.quality)
         self.reload_img = self.reload_auto if self.auto_orient else self.reload_nonauto
 
-    def open_dir(self):
-        # noinspection PyCallByClass,PyTypeChecker
-        fname = QFileDialog.getExistingDirectory(self)
-        # .getOpenFileName(self, 'Open File', self.pics_dir)[0]
-        if fname:
-            if fname.lower().endswith(read_list()):
-                if new_win:
-                    self.open_new(fname)
-                else:
-                    self.open_img(fname)
-            else:
-                # noinspection PyArgumentList,PyCallByClass,PyTypeChecker
-                QMessageBox.information(self, 'Error', 'Cannot load {} images.'.format(fname.rsplit('.', 1)[1]))
+    # def open_dir(self):
+    # # noinspection PyCallByClass,PyTypeChecker
+    # fname = QFileDialog.getExistingDirectory(self)
+    #     # .getOpenFileName(self, 'Open File', self.pics_dir)[0]
+    #     if fname:
+    #         if fname.lower().endswith(read_list()):
+    #             if new_win:
+    #                 self.open_new(fname)
+    #             else:
+    #                 self.open_img(fname)
+    #         else:
+    #             # noinspection PyArgumentList,PyCallByClass,PyTypeChecker
+    #             QMessageBox.information(self, 'Error', 'Cannot load {} images.'.format(fname.rsplit('.', 1)[1]))
 
     def open(self, new_win=False):
         # noinspection PyArgumentList,PyCallByClass,PyTypeChecker
@@ -646,6 +645,8 @@ class ImageViewer(QApplication):
 
 
 if __name__ == '__main__':
+    import sys
+
     app = ImageViewer(sys.argv)
     app.startup()
     app.exec_()
