@@ -29,6 +29,9 @@ log = logging.getLogger(__name__)
 logit = logging.getLogger('gphoto2')
 logit.setLevel(logging.INFO)
 
+# self.win.open_img(fname) #open fname
+# self.win.open()          #?
+
 
 class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
     def __init__(self):
@@ -71,7 +74,7 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.horizontalLayout.addWidget(self.img_view)  # add widget to uic generated form
 
         self.reload_img = self.reload_auto
-        # self.open_new = self.parent.open_win
+        # self.open_new = self.parent().open_win
         # self.exit = self.parent().closeAllWindows
         self.create_actions()
         self.create_menu()
@@ -91,7 +94,6 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.resize(1000, 600)
 
     # scan functions
-
     def scan(self):
         if self.msp_update_from_gui():
             self.msp.scan_threaded(scan_type=ScanType.start_end,
@@ -201,12 +203,11 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.pushButton_tpt_reset.clicked.connect(self.msp.tpt_reset)
 
         self.open_act.triggered.connect(self.open)
-        self.open_new_act.triggered.connect(partial(self.open, True))
         self.reload_act.triggered.connect(self.reload_img)
         self.print_act.triggered.connect(self.print_img)
         self.save_act.triggered.connect(self.save_img)
         self.close_act.triggered.connect(self.close)
-        # self.exit_act.triggered.connect(self.exit)
+        self.exit_act.triggered.connect(self.exit)
         self.fulls_act.triggered.connect(self.toggle_fs)
         self.ss_act.triggered.connect(self.toggle_slideshow)
         self.ss_next_act.triggered.connect(self.set_slide_type)
@@ -244,9 +245,15 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.progress.setMaximumSize(170, 19)
         self.statusbar.addPermanentWidget(self.progress)
 
+    def exit(self):
+        self.msp.cam.close()
+        self.msp.tpt.close()
+        self.msp.led.close()
+        self.close()
+
     def create_menu(self):
         self.popup = QMenu(self)
-        main_acts = [self.open_act, self.open_new_act, self.reload_act, self.print_act, self.save_act]
+        main_acts = [self.open_act, self.reload_act, self.print_act, self.save_act]
         edit_acts1 = [self.rotleft_act, self.rotright_act, self.fliph_act, self.flipv_act]
         edit_acts2 = [self.resize_act, self.crop_act]
         view_acts = [self.next_act, self.prev_act, self.zin_act, self.zout_act, self.fit_win_act, self.fulls_act,
@@ -312,32 +319,16 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
             conf.write_config(self.auto_orient, self.slide_delay, self.quality)
         self.reload_img = self.reload_auto if self.auto_orient else self.reload_nonauto
 
-    # def open_dir(self):
-    # # noinspection PyCallByClass,PyTypeChecker
     # fname = QFileDialog.getExistingDirectory(self)
-    #     # .getOpenFileName(self, 'Open File', self.pics_dir)[0]
-    #     if fname:
-    #         if fname.lower().endswith(read_list()):
-    #             if new_win:
-    #                 self.open_new(fname)
-    #             else:
-    #                 self.open_img(fname)
-    #         else:
-    #             # noinspection PyArgumentList,PyCallByClass,PyTypeChecker
-    #             QMessageBox.information(self, 'Error', 'Cannot load {} images.'.format(fname.rsplit('.', 1)[1]))
-
-    def open(self, new_win=False):
+    def open(self):
         # noinspection PyArgumentList,PyCallByClass,PyTypeChecker
         fname = QFileDialog.getOpenFileName(self, 'Open File', self.pics_dir)[0]
         if fname:
             if fname.lower().endswith(read_list()):
-                if new_win:
-                    self.open_new(fname)
-                else:
-                    self.open_img(fname)
+                self.open_img(fname)
             else:
                 # noinspection PyArgumentList,PyCallByClass,PyTypeChecker
-                QMessageBox.information(self, 'Error', 'Cannot load {} images.'.format(fname.rsplit('.', 1)[1]))
+                QMessageBox.information(self, 'Error', 'Cannot load image.'.format(fname.rsplit('.', 1)[1]))
 
     def open_img(self, fname):
         self.fname = fname
@@ -561,12 +552,9 @@ class ImageView(QGraphicsView):
     # todo: parent is named - why?
     def __init__(self, parent=None):
         QGraphicsView.__init__(self, parent)
-
         self.rubber_band = None
-
         self.go_prev_img = parent.go_prev_img
         self.go_next_img = parent.go_next_img
-
         pal = self.palette()
         pal.setColor(self.backgroundRole(), Qt.black)
         self.setPalette(pal)
@@ -617,36 +605,17 @@ class ImageView(QGraphicsView):
         return x, y, width, height
 
 
+#supports more than one image - see Cheesemaker source
 class ImageViewer(QApplication):
     def __init__(self, args):
         QApplication.__init__(self, args)
-        self.win = None
         self.args = args
-
-    def startup(self):
-        if len(self.args) > 1:
-            files = self.args[1:]
-            self.open_files(files)
-        else:
-            self.open_win(None)
-
-    def open_files(self, files):
-        for fname in files:
-            if fname.lower().endswith(read_list()):
-                self.open_win(fname)
-
-    def open_win(self, fname):
         self.win = MechascanSlideGUI()
         self.win.show()
-        if fname:
-            self.win.open_img(fname)
-        else:
-            self.win.open()
 
 
 if __name__ == '__main__':
     import sys
-
     app = ImageViewer(sys.argv)
-    app.startup()
     app.exec_()
+    log.debug("mechanik end....")

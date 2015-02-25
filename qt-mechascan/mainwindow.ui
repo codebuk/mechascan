@@ -57,7 +57,6 @@ QGroupBox::title {
      <string>&amp;File</string>
     </property>
     <addaction name="open_act"/>
-    <addaction name="open_new_act"/>
     <addaction name="print_act"/>
     <addaction name="save_act"/>
     <addaction name="exit_act"/>
@@ -722,14 +721,6 @@ QGroupBox::title {
    </property>
    <property name="shortcut">
     <string>Down</string>
-   </property>
-  </action>
-  <action name="open_new_act">
-   <property name="text">
-    <string>Open new window</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Shift+O</string>
    </property>
   </action>
   <action name="reload_act">

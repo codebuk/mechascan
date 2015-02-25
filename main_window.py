@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file './qt-mechascan/mainwindow.ui'
 #
-# Created: Tue Feb 24 23:44:56 2015
+# Created: Wed Feb 25 20:58:30 2015
 #      by: PyQt5 UI code generator 5.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -338,8 +338,6 @@ class Ui_MainWindow(object):
         self.zout_act = QtWidgets.QAction(MainWindow)
         self.zout_act.setCheckable(True)
         self.zout_act.setObjectName("zout_act")
-        self.open_new_act = QtWidgets.QAction(MainWindow)
-        self.open_new_act.setObjectName("open_new_act")
         self.reload_act = QtWidgets.QAction(MainWindow)
         self.reload_act.setObjectName("reload_act")
         self.print_act = QtWidgets.QAction(MainWindow)
@@ -381,7 +379,6 @@ class Ui_MainWindow(object):
         self.actionNext = QtWidgets.QAction(MainWindow)
         self.actionNext.setObjectName("actionNext")
         self.menuMechascan.addAction(self.open_act)
-        self.menuMechascan.addAction(self.open_new_act)
         self.menuMechascan.addAction(self.print_act)
         self.menuMechascan.addAction(self.save_act)
         self.menuMechascan.addAction(self.exit_act)
@@ -459,8 +456,6 @@ class Ui_MainWindow(object):
         self.zin_act.setShortcut(_translate("MainWindow", "Up"))
         self.zout_act.setText(_translate("MainWindow", "Zoom &Out"))
         self.zout_act.setShortcut(_translate("MainWindow", "Down"))
-        self.open_new_act.setText(_translate("MainWindow", "Open new window"))
-        self.open_new_act.setShortcut(_translate("MainWindow", "Ctrl+Shift+O"))
         self.reload_act.setText(_translate("MainWindow", "&Reload image"))
         self.reload_act.setShortcut(_translate("MainWindow", "Ctrl+R"))
         self.print_act.setText(_translate("MainWindow", "&Print"))

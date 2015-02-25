@@ -85,7 +85,8 @@ class CameraDevice:
     def close(self):
         if self.connected:
             log.debug('cam device close')
-            gp.check_result(gp.gp_camera_exit(self.camera, self.context))
+            # gp.check_result(gp.gp_camera_exit(self.camera, self.context))
+            gp.gp_camera_exit(self.camera, self.context)
             # log.info("Error closing camera - not opened?")
             self.connected = False
             return 0

@@ -30,6 +30,7 @@ log = logging.getLogger(__name__)
 
 
 class EktaproError(Exception):
+    log.error("#######################################################################################")
     pass
 
 
@@ -52,8 +53,8 @@ class EktaproDevice:
         self.ready = False
         self.status_valid = False
         self.log_debug = True
+        self.reset_time_out = 10
 
-        # flags from the projector
         self.standby = 0
         self.auto_focus = False
         self.auto_zero = False
@@ -122,7 +123,8 @@ class EktaproDevice:
             self.serial_device.close()
         self.port = "Not Connected"
         self.connected = 0
-        self.get_status()
+        self.system_status_clear()
+        self.system_return_clear()
 
     def toggle_standby(self):
         self.standby = not self.standby
@@ -169,10 +171,26 @@ class EktaproDevice:
 
     def reset(self):
         self.comms(EktaproCommand(self.id).direct_reset_system())
-        time.sleep(10)
-        self.get_system_status()  # update internal status
-        self.get_system_return()
-        self.get_system_status()
+        # while resetting no serial response so poll up to 10 seconds looking for a response
+        time.sleep(.2)  # stop useless polling
+        ts = time.time()
+        while True:
+            self.comms(EktaproCommand(self.id).status_system_status(), read_bytes=0)
+            time.sleep(.1)
+            if self.serial_device.inWaiting() == 3:  # important to wait for full response
+                self.serial_device.read(3)
+                break
+            if time.time() - ts > self.reset_time_out:
+                log.error("Reset timeout: " + str(self.reset_time_out))
+                raise EktaproError("Reset timeout")
+        log.debug("reset polled for: " + str(time.time() - ts))
+        time.sleep(.2)
+        # self.serial_device.flushInput()
+        #self.serial_device.flushOutput()
+
+        self.clear_error_flag()
+        log.debug(self.get_details())
+        self.get_status()  # update internal status
 
     def clear_error_flag(self):
         self.comms(EktaproCommand(self.id).direct_clear_error_flag())
@@ -203,16 +221,15 @@ class EktaproDevice:
             else:
                 self.slide = int(str(reply[2]))
 
-    def busy_wait(self, time_out=0.0, desc=""):
+    def poll_busy(self, time_out=0.0, desc=""):
         if not self.connected:
             return
         if time_out == 0:
             return
-        if not self.get_status(busy_check=True):
-            return
+        log.debug("busy wait for: " + str(time_out))
         busy = True
         ts = time.time()
-        self.log_debug = False
+        #self.log_debug = False  # turn off logging so we do not spam logs
         if time_out > 0:
             while busy:
                 busy = self.get_status(busy_check=True)
@@ -220,7 +237,7 @@ class EktaproDevice:
                 if time.time() - ts > time_out:
                     log.error("Busy " + desc + " timeout: " + str(time_out))
                     raise EktaproError("Busy timeout")
-            log.debug(desc + "busy for: " + str(time.time() - ts))
+            log.debug(desc + "polled for: " + str(time.time() - ts))
 
     # primary method to get status of projector -will invoke both type of system status checks
     # busy_check is fast path for just checking if busy
@@ -252,7 +269,7 @@ class EktaproDevice:
     def get_system_return(self):
         self.info = self.comms(EktaproCommand(self.id).status_system_return(), read_bytes=5)
         if self.connected:
-            if self.info.__len__ == 5:
+            if len(self.info) == 5:
                 info = self.info
                 # self.id = info[0] / 16 - do not change based on returned values
                 self.type = int(info[2] // 16)
@@ -269,6 +286,10 @@ class EktaproDevice:
                 log.error("get_system_return invalid response")
                 raise EktaproError("get_system_return invalid response")
         else:
+            self.system_return_clear()
+
+    def system_return_clear(self):
+
             self.info = None
             self.type = None
             self.version = None
@@ -282,21 +303,25 @@ class EktaproDevice:
             self.high_light = None
 
     # return True if busy
-    # when polling use debug=False to reduce logging noise
     def get_system_status(self):
         reply = self.comms(EktaproCommand(self.id).status_system_status(), read_bytes=3)
         self.status_valid = False
         if self.connected:
             if len(reply) == 3:
-                if (reply[0] % 8 == 6) and (reply[2] % 4 == 3):
-                    # or not (ord(s[1]) % 64 == 3) \ #should be 11XX XXXX don't check for now
-                    # documentation seems to be incorrect:-)
-                    # self.projector_id = ord(s[0]) / 8 - do not change based on returned values
-                    self.status_valid = True
+                msg = ""
+                if not reply[0] % 8 == 6:
+                    msg = "get_system_status byte 0 invalid response\n"
+                # if not reply[1] % 64 == 3:  # should be 11XX XXXX  documentation seems to be incorrect:-)
+                # msg += msg + "get_system_status byte 1 invalid response\n"
+                if not reply[2] % 4 == 3:
+                    msg += "get_system_status byte 2 invalid response"
+                if len(msg):
+                    log.error(msg)
+                    raise EktaproError(msg)
                 else:
-                    log.error("get_system_status invalid response")
-                    raise EktaproError("get_system_status invalid response")
+                    self.status_valid = True
         if self.status_valid:
+            # self.projector_id = s[0] // 8 - do not change based on returned values
             self.unknown_flag1 = (reply[1] & 16) // 16  # this is undocumented - seems to be on after reset process
             self.unknown_flag2 = (reply[1] & 32) // 32
             self.lamp1_status = (reply[1] & 8) // 8
@@ -310,36 +335,45 @@ class EktaproDevice:
             self.buffer_overflow_error = (reply[2] & 8) // 8
             self.framing_error = (reply[2] & 4) // 4
         else:
-            self.status_valid = False
-            self.unknown_flag1 = 0
-            self.unknown_flag2 = 0
-            self.lamp1_status = 0
-            self.lamp2_status = 0
-            self.status = 0
-            self.at_zero_position = 0
-            self.slide_lift_motor_error = 0
-            self.tray_transport_motor_error = 0
-            self.command_error = 0
-            self.overrun_error = 0
-            self.buffer_overflow_error = 0
-            self.framing_error = 0
+            self.system_status_clear()
+
         if self.status == 1:
             self.is_busy = True
         else:
             self.is_busy = False
         return self.status
 
+    def system_status_clear(self):
+        self.status_valid = False
+        self.unknown_flag1 = 0
+        self.unknown_flag2 = 0
+        self.lamp1_status = 0
+        self.lamp2_status = 0
+        self.status = 0
+        self.at_zero_position = 0
+        self.slide_lift_motor_error = 0
+        self.tray_transport_motor_error = 0
+        self.command_error = 0
+        self.overrun_error = 0
+        self.buffer_overflow_error = 0
+        self.framing_error = 0
+
     def comms(self, command, read_bytes=0, pre_timeout=0.0, post_timeout=0.0):
         rec = bytearray()
+        command_bytes = command.to_data()
         if self.log_debug:
+            binary_string = ""
+            for c in command_bytes:
+                binary_string += bin(c) + " "
             log.debug("Send: " + str(command) +
-                      " hex: " + repr(command.to_data()) +
+                      " hex: " + repr(command_bytes) +
+                      " bin: " + binary_string +
                       " pre/post timeouts: " + str(pre_timeout) +
                       " - " + str(post_timeout))
-        self.busy_wait(pre_timeout, desc="pre timeout ")
+        self.poll_busy(pre_timeout, desc="pre timeout ")
         if self.serial_device and not self.serial_device.closed:
             # try:  # might be disconnected or port removed or....
-            self.serial_device.write(command.to_data())
+            self.serial_device.write(command_bytes)
             #except:
             #    raise EktaproError ""
         else:
@@ -355,10 +389,13 @@ class EktaproDevice:
                       " requested: " + str(read_bytes)
                 raise EktaproError(msg)
             if self.log_debug:
-                log.debug("Received: " + repr(rec) + " len: " + str(len(rec)))
+                binary_string = "binary - "
+                for c in rec:
+                    binary_string += bin(c) + " "
+                log.debug("Received: " + repr(rec) + binary_string + " len: " + str(len(rec)))
         elif read_bytes > 0:
             log.debug("ignore serial read - device not connected")
-        self.busy_wait(post_timeout, desc="post timeout ")
+        self.poll_busy(post_timeout, desc="post timeout ")
         return rec
 
     def get_details(self):
@@ -562,13 +599,13 @@ class EktaproCommand:
 
     def __str__(self):
         command_string = {
-            0: "Parameter Mode - " + self.parameter_mode_to_string(),
-            1: "Set/Reset Mode - " + self.set_reset_mode_to_string(),
+            0: "Param  Mode - " + self.parameter_mode_to_string(),
+            1: "SetRes Mode - " + self.set_reset_mode_to_string(),
             2: "Direct Mode - " + self.direct_mode_to_string(),
-            3: "Status Request Mode - " + self.status_request_to_string()
+            3: "Status Mode - " + self.status_request_to_string()
         }
 
-        return "Projector " + str(self.id) + " - " \
+        return "P:" + str(self.id) + " - " \
                + command_string.get(self.mode, "Unknown Mode")
 
     def parameter_mode_to_string(self):
