@@ -30,7 +30,6 @@ log = logging.getLogger(__name__)
 
 
 class EktaproError(Exception):
-    log.error("#######################################################################################")
     pass
 
 
@@ -61,12 +60,12 @@ class EktaproDevice:
         self.low_lamp = False
         self.active_lamp = 0
         self.high_light = False
-        self.unknown_flag1 = False
+        self.resetting = False
         self.unknown_flag2 = False
         self.lamp1_status = False
         self.lamp2_status = False
         self.power_frequency = 0
-        self.status = False
+        self.busy = False
         self.at_zero_position = False
         self.slide_lift_motor_error = False
         self.tray_transport_motor_error = False
@@ -88,9 +87,11 @@ class EktaproDevice:
                 self.serial_device = None
                 return False
             else:
+                self.serial_device.flushInput()
+                self.serial_device.flushOutput()
                 self.serial_device.write(EktaproCommand(0).status_system_return().to_data())
                 self.info = self.serial_device.read(5)
-
+                # todo use system status as it is not bufferred
                 if self.info is None or len(self.info) == 0 \
                         or not (self.info[0] % 8 == 6) \
                         or not (self.info[1] // 16 == 13) \
@@ -170,26 +171,26 @@ class EktaproDevice:
         self.standby = False
 
     def reset(self):
+        #when reset device might respond with not busy
+        #there is a an undocumented flag used to indicate reset is complete
+        #if the next call
         self.comms(EktaproCommand(self.id).direct_reset_system())
         # while resetting no serial response so poll up to 10 seconds looking for a response
         time.sleep(.2)  # stop useless polling
+        self.serial_device.flushInput()
+        self.serial_device.flushOutput()
         ts = time.time()
         while True:
-            self.comms(EktaproCommand(self.id).status_system_status(), read_bytes=0)
-            time.sleep(.1)
-            if self.serial_device.inWaiting() == 3:  # important to wait for full response
-                self.serial_device.read(3)
+            self.get_system_status()
+            log.debug(self.get_details(extended=False))
+            if not self.resetting and not self.busy:
                 break
+            time.sleep(.5)
             if time.time() - ts > self.reset_time_out:
                 log.error("Reset timeout: " + str(self.reset_time_out))
                 raise EktaproError("Reset timeout")
         log.debug("reset polled for: " + str(time.time() - ts))
-        time.sleep(.2)
-        # self.serial_device.flushInput()
-        #self.serial_device.flushOutput()
-
-        self.clear_error_flag()
-        log.debug(self.get_details())
+        #self.get_system_return()
         self.get_status()  # update internal status
 
     def clear_error_flag(self):
@@ -229,15 +230,17 @@ class EktaproDevice:
         log.debug("busy wait for: " + str(time_out))
         busy = True
         ts = time.time()
-        #self.log_debug = False  # turn off logging so we do not spam logs
+        # turn off logging so we do not spam logs
         if time_out > 0:
             while busy:
+                self.log_debug = False
                 busy = self.get_status(busy_check=True)
                 self.log_debug = True
                 if time.time() - ts > time_out:
                     log.error("Busy " + desc + " timeout: " + str(time_out))
                     raise EktaproError("Busy timeout")
             log.debug(desc + "polled for: " + str(time.time() - ts))
+        self.log_debug = True
 
     # primary method to get status of projector -will invoke both type of system status checks
     # busy_check is fast path for just checking if busy
@@ -322,11 +325,11 @@ class EktaproDevice:
                     self.status_valid = True
         if self.status_valid:
             # self.projector_id = s[0] // 8 - do not change based on returned values
-            self.unknown_flag1 = (reply[1] & 16) // 16  # this is undocumented - seems to be on after reset process
+            self.resetting = (reply[1] & 16) // 16  # this is undocumented - seems to be on after reset process
             self.unknown_flag2 = (reply[1] & 32) // 32
             self.lamp1_status = (reply[1] & 8) // 8
             self.lamp2_status = (reply[1] & 4) // 4
-            self.status = (reply[1] & 2) // 2
+            self.busy = (reply[1] & 2) // 2
             self.at_zero_position = reply[1] & 1
             self.slide_lift_motor_error = (reply[2] & 128) // 128
             self.tray_transport_motor_error = (reply[2] & 64) // 64
@@ -337,19 +340,19 @@ class EktaproDevice:
         else:
             self.system_status_clear()
 
-        if self.status == 1:
+        if self.busy == 1:
             self.is_busy = True
         else:
             self.is_busy = False
-        return self.status
+        return self.busy
 
     def system_status_clear(self):
         self.status_valid = False
-        self.unknown_flag1 = 0
+        self.resetting = False
         self.unknown_flag2 = 0
         self.lamp1_status = 0
         self.lamp2_status = 0
-        self.status = 0
+        self.busy = 0
         self.at_zero_position = 0
         self.slide_lift_motor_error = 0
         self.tray_transport_motor_error = 0
@@ -359,6 +362,20 @@ class EktaproDevice:
         self.framing_error = 0
 
     def comms(self, command, read_bytes=0, pre_timeout=0.0, post_timeout=0.0):
+        #we do not rely of buffering so check
+        #todo can throw 'OSError: [Errno 5] Input/output error'
+        if self.serial_device.inWaiting():
+            log.debug (self.serial_device.inWaiting())
+            rec = self.serial_device.read()
+            binary_string = "binary - "
+            for c in rec:
+                binary_string += bin(c) + " "
+            log.debug("Received. " +
+                       #"Hex: " + repr(rec)
+                       binary_string +
+                       " len: " + str(len(rec)))
+            raise EktaproError ("junk in buffer")
+
         rec = bytearray()
         command_bytes = command.to_data()
         if self.log_debug:
@@ -366,7 +383,7 @@ class EktaproDevice:
             for c in command_bytes:
                 binary_string += bin(c) + " "
             log.debug("Send: " + str(command) +
-                      " hex: " + repr(command_bytes) +
+                      #" hex: " + repr(command_bytes) +
                       " bin: " + binary_string +
                       " pre/post timeouts: " + str(pre_timeout) +
                       " - " + str(post_timeout))
@@ -374,6 +391,7 @@ class EktaproDevice:
         if self.serial_device and not self.serial_device.closed:
             # try:  # might be disconnected or port removed or....
             self.serial_device.write(command_bytes)
+
             #except:
             #    raise EktaproError ""
         else:
@@ -392,32 +410,39 @@ class EktaproDevice:
                 binary_string = "binary - "
                 for c in rec:
                     binary_string += bin(c) + " "
-                log.debug("Received: " + repr(rec) + binary_string + " len: " + str(len(rec)))
+                log.debug("Received. " +
+                          #"Hex: " + repr(rec)
+                          binary_string +
+                          " len: " + str(len(rec)))
         elif read_bytes > 0:
             log.debug("ignore serial read - device not connected")
         self.poll_busy(post_timeout, desc="post timeout ")
         return rec
 
-    def get_details(self):
-        return "\n Model: " + self.get_model() \
-               + "\n Projector Busy: " + str(self.status) \
-               + "\n At zero: " + str(self.at_zero_position) \
-               + "\n Slide lift motor error: " + str(self.slide_lift_motor_error) \
-               + "\n Tray transport motor error: " + str(self.tray_transport_motor_error) \
-               + "\n Command Error: " + str(self.command_error) \
-               + "\n Buffer overflow: " + str(self.buffer_overflow_error) \
-               + "\n Overrun error: " + str(self.overrun_error) \
-               + "\n Framing error: " + str(self.framing_error) \
-               + "\n Tray size: " + str(self.tray_size) \
-               + "\n Active lamp: " + ("L2" if self.active_lamp == 1 else "L1") \
-               + "\n Standby: " + ("On" if self.standby == 1 else "Off") \
-               + "\n Flag 1: " + str(self.unknown_flag1) \
-               + "\n Flag 2: " + str(self.unknown_flag2) \
-               + "\n Power frequency: " + ("60Hz" if self.power_frequency == 1 else "50Hz") \
-               + "\n Autofocus: " + ("On" if self.auto_focus == 1 else "Off") \
-               + "\n Autozero: " + ("On" if self.auto_zero == 1 else "Off") \
-               + "\n Low lamp mode: " + ("On" if self.low_lamp == 1 else "Off") \
-               + "\n High light: " + ("On" if self.high_light == 1 else "Off")
+    def get_details(self, extended=True):
+        det = "Busy: " + str(self.busy)\
+            + " Home: " + str(self.at_zero_position)\
+            + " Reset:" + str(self.resetting)\
+            + " F2:" + str(self.unknown_flag2)\
+            + " SLME:" + str(self.slide_lift_motor_error)\
+            + " TTME:" + str(self.tray_transport_motor_error)\
+            + " CE:" + str(self.command_error)\
+            + " BOE:" + str(self.buffer_overflow_error)\
+            + " OE:" + str(self.overrun_error)\
+            + " FE:" + str(self.framing_error)\
+            + " L1:" + str(self.lamp1_status)\
+            + " L2:" + str(self.lamp2_status)
+        if extended:
+            det += "\n Model: " + self.get_model()\
+                + "\n Tray size: " + str(self.tray_size)\
+                + "\n Active lamp: " + ("L2" if self.active_lamp == 1 else "L1")\
+                + "\n Standby: " + ("On" if self.standby == 1 else "Off")\
+                + "\n Power frequency: " + ("60Hz" if self.power_frequency == 1 else "50Hz")\
+                + "\n Autofocus: " + ("On" if self.auto_focus == 1 else "Off")\
+                + "\n Autozero: " + ("On" if self.auto_zero == 1 else "Off")\
+                + "\n Low lamp mode: " + ("On" if self.low_lamp == 1 else "Off")\
+                + "\n High light: " + ("On" if self.high_light == 1 else "Off")
+        return det
 
 
 class EktaproCommand:

@@ -55,10 +55,12 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.last_file = 0
         self.slides_next = True
 
-        self.msg_queue = Queue()
-        self.file_queue = Queue()
-        self.msp = mechascan_process.Process(self.msg_queue, self.file_queue)
-        self.msp.connect_hardware_threaded()
+        self.msg_queue = Queue()  #process messages for GUI to display - if it cares...
+        self.file_queue = Queue() #process to gui - filename of images when they are ready for display
+        self.work_queue = Queue() #gui -> process pass lambda commands
+        self.msp = mechascan_process.Process(self.msg_queue, self.file_queue, self.work_queue)
+        self.work_queue.put(lambda:  self.msp.connect_hardware())
+        self.msp.work_threaded()
 
         self.setupUi(self)
         self.printer = QPrinter()
@@ -96,37 +98,45 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
     # scan functions
     def scan(self):
         if self.msp_update_from_gui():
-            self.msp.scan_threaded(scan_type=ScanType.start_end,
+            self.work_queue.put(lambda:  self.msp.scan(scan_type=ScanType.start_end,
                                    start=self.sb_start_slot.value(),
-                                   end=self.sb_end_slot.value())
-            # self.msp.scan()
+                                   end=self.sb_end_slot.value()))
 
     def scan_next(self):
         if self.msp_update_from_gui():
-            self.msp.scan_threaded(scan_type=ScanType.next)
+            self.work_queue.put(lambda:  self.msp.scan(scan_type=ScanType.next))
 
     def scan_prev(self):
         if self.msp_update_from_gui():
-            self.msp.scan_threaded(scan_type=ScanType.prev)
+            self.work_queue.put(lambda:  self.msp.scan(scan_type=ScanType.prev))
 
     def scan_current(self):
         if self.msp_update_from_gui():
-            self.msp.scan_threaded(scan_type=ScanType.current)
+             self.work_queue.put(lambda:  self.msp.scan(scan_type=ScanType.current))
 
     def scan_stop(self):
-        self.msp.stop_scan()
+        while not self.work_queue.empty():
+            log.debug ("clearing task off queue")
+            task = self.work_queue.get_nowait()
+            self.work_queue.task_done()
+        self.work_queue.put(lambda:  self.msp.stop_scan())
 
     def tpt_slot_current(self, x):
-        self.msp.select_slot(x)
+        self.work_queue.put(lambda:  self.msp.select_slot(x))
 
     def lamp_on(self, checked):
         if checked:
-            self.msp.led_on()
+            self.work_queue.put(lambda:  self.msp.led_on())
         else:
-            self.msp.led_off()
+            self.work_queue.put(lambda:  self.msp.led_off())
+
+    def select_slot(self):
+         self.work_queue.put(lambda:  self.msp.select_slot(1))
+
+    def tpt_reset(self):
+         self.work_queue.put(lambda:  self.msp.tpt_reset())
 
     def update_gui(self):
-
         # empty msg queue - just grab the last message for display as user will
         # only be able to see the last message
         msg = ""
@@ -199,8 +209,8 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.pushButton_capture.clicked.connect(self.scan_current)
 
         self.pushButton_lamp.clicked.connect(self.lamp_on)
-        self.pushButton_tpt_home.clicked.connect(partial(self.msp.select_slot, 1))
-        self.pushButton_tpt_reset.clicked.connect(self.msp.tpt_reset)
+        self.pushButton_tpt_home.clicked.connect(partial(self.select_slot, 1))
+        self.pushButton_tpt_reset.clicked.connect(self.tpt_reset)
 
         self.open_act.triggered.connect(self.open)
         self.reload_act.triggered.connect(self.reload_img)

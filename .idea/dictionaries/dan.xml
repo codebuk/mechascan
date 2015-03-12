@@ -14,6 +14,7 @@
       <w>devs</w>
       <w>dirname</w>
       <w>ektapro</w>
+      <w>errno</w>
       <w>exifread</w>
       <w>exiv</w>
       <w>fileimage</w>
@@ -39,8 +40,10 @@
       <w>sdram</w>
       <w>serialcomm</w>
       <w>slideshow</w>
+      <w>slme</w>
       <w>spinb</w>
       <w>svgz</w>
+      <w>ttme</w>
       <w>tyrrell</w>
       <w>wbmp</w>
       <w>xmlns</w>

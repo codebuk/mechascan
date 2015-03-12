@@ -2,7 +2,9 @@
 """
    Copyright (C) 2014,2015 Breager
    One projector per serial port is supported.
-
+   Wraps led,c amera and tranport device.
+   Provides a high level interface to functions.
+   All GUI actions should be seperate to this module.
 """
 
 from contextlib import contextmanager
@@ -13,7 +15,6 @@ from cam import *
 from gardasoft import *
 
 import logging
-
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
                     datefmt='%M:%S')
@@ -32,10 +33,16 @@ class ScanType(Enum):
     start_end = 4
 
 
+
+class ProcessError(Exception):
+    pass
+
+
 class Process:
-    def __init__(self, msg_q, file_q):
+    def __init__(self, msg_q, file_q, work_q):
         self.msg_queue = msg_q
         self.file_queue = file_q
+        self.work_queue = work_q
         self.lock = TimeoutLock()
 
         self.capture_delay_min = 0
@@ -69,33 +76,44 @@ class Process:
         self.tpt = EktaproDevice()
         self.msg_queue.put("Init done")
 
-    def scan_threaded(self, scan_type=ScanType.start_end, start=1, end=1):
-        thread = threading.Thread(target=self.scan, args=(scan_type, start, end))
-        thread.daemon = True  # thread dies when main thread (only non-daemon thread) exits.
+    def work_threaded(self):
+        thread = threading.Thread(target=self.work)
+        thread.daemon = True        # thread dies when main thread (only non-daemon thread) exits.
         thread.start()
 
-    def scan(self, scan=ScanType.start_end, start=1, end=1):
+    def work (self):
+       while True:
+           log.debug ( "waiting for work")
+           job = self.work_queue.get()
+           job()
+           self.work_queue.task_done()
+
+    def scan(self, scan_type=ScanType.start_end, start=1, end=1):
         with self.lock.acquire_timeout(0):
+            if self.scan_state == ScanState.scanning:
+                raise ProcessError ("Scan re-entered")
             self.scan_state = ScanState.scanning
-            if scan == ScanType.start_end:
+            if scan_type == ScanType.start_end:
                 self.slot_start = start
                 self.slot_end = end
                 if self.tpt_enabled:
                     self.tpt.select(self.slot_start)
-            elif scan == ScanType.next:
+            elif scan_type == ScanType.next:
                 self.tpt.next(post_timeout=0)
                 self.slot_start = self.tpt.slide
                 self.slot_end = self.tpt.slide
-            elif scan == ScanType.prev:
+            elif scan_type == ScanType.prev:
                 self.tpt.prev(post_timeout=0)
                 self.slot_start = self.tpt.slide
                 self.slot_end = self.tpt.slide
-            else:  # scan == ScanType.current: or anything...
+            elif scan_type == ScanType.current:
                 self.slot_start = self.tpt.slide
                 self.slot_end = self.tpt.slide
+            else:
+                raise ProcessError ("Invalid scan type")
 
-            if not self.led_enabled:
-                self.led.continuous(1, 0)
+            #if not self.led_enabled:
+            #    self.led.continuous(1, 0)
             log.info("scanning slots " + str(self.slot_start) + " to " + str(self.slot_end))
             for slide in range(self.slot_start, self.slot_end + 1):
                 ts = time.time()
@@ -103,7 +121,7 @@ class Process:
                 if self.scan_state == ScanState.stopped:
                     self.msg_queue.put("Stopping scanning")
                     break
-                if self.tpt_enabled and not scan == ScanType.current:
+                if self.tpt_enabled and not scan_type == ScanType.current:
                     try:
                         while self.tpt.get_status(busy_check=True):
                             pass
@@ -154,13 +172,10 @@ class Process:
             self.tpt_port = self.tpt.port
             self.tpt_connected = self.tpt.connected
 
+            #cam
+            self.cam.open()
             self.cam_port = self.cam.port
             self.cam_connected = self.cam.connected
-
-    def connect_hardware_threaded(self):
-        thread = threading.Thread(target=self.connect_hardware)
-        thread.daemon = True        # thread dies when main thread (only non-daemon thread) exits.
-        thread.start()
 
     def disconnect_hardware(self):
         with self.lock.acquire_timeout(0):
@@ -178,6 +193,7 @@ class Process:
             self.led.continuous(1, 0)
 
     def stop_scan(self):
+        log.info("stopping scan")
         self.scan_state = ScanState.stopped
 
     def select_slot(self, slot):

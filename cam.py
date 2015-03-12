@@ -30,15 +30,19 @@ class CameraDevice:
         self.port = "Auto"
         self.capture_ok = False
 
+
     def set_config(self, camera, context, name, value):
         # get configuration tree
         log.debug('set config')
         # noinspection PyUnresolvedReferences
         self.config = gp.check_result(gp.gp_camera_get_config(camera, context))
+        # noinspection PyUnresolvedReferences
         widget_child = gp.check_result(gp.gp_widget_get_child_by_name(self.config, name))
         # widget_type = gp.check_result(gp.gp_widget_get_type(widget_child))
         # widget_value = gp.check_result(gp.gp_widget_get_value(widget_child))
+        # noinspection PyUnresolvedReferences
         gp.check_result(gp.gp_widget_set_value(widget_child, value))
+        # noinspection PyUnresolvedReferences
         gp.check_result(gp.gp_camera_set_config(camera, self.config, context))
         # log.info ( name + " type : " + str(widget_type) + " old value : " +
         # str(widget_value) + " new value : " + value)
@@ -47,11 +51,14 @@ class CameraDevice:
         log.debug('open')
         # gp.check_result(gp.use_python_logging())
         log.debug('allocate memory')
+        # noinspection PyUnresolvedReferences
         gp.gp_camera_new()
+        # noinspection PyUnresolvedReferences
         self.camera = gp.check_result(gp.gp_camera_new())
-
+        # noinspection PyUnresolvedReferences
         self.context = gp.gp_context_new()
         log.debug('init camera')
+        # noinspection PyUnresolvedReferences
         gp.check_result(gp.gp_camera_init(self.camera, self.context))
         self.connected = True
         # self.set_config ( self.camera, self.context, 'capturetarget', 'sdram' )
@@ -59,6 +66,7 @@ class CameraDevice:
     def capture(self):
         if self.connected:
             log.debug('capture')
+            # noinspection PyUnresolvedReferences
             error, self.path = gp.gp_camera_capture(self.camera, gp.GP_CAPTURE_IMAGE, self.context)
             if error:
                 log.error("Image capture failed " + str(error))
@@ -75,9 +83,12 @@ class CameraDevice:
     def save(self, name):
         log.debug('save')
         if self.capture_ok:
+            # noinspection PyUnresolvedReferences
             camera_file = gp.check_result(gp.gp_camera_file_get(
                 self.camera, self.path.folder, self.path.name, gp.GP_FILE_TYPE_NORMAL, self.context))
+            # noinspection PyUnresolvedReferences
             gp.check_result(gp.gp_file_save(camera_file, name))
+            # noinspection PyUnresolvedReferences
             gp.check_result(gp.gp_camera_file_delete(self.camera, self.path.folder, self.path.name, self.context))
         else:
             log.info("save failed")
@@ -86,6 +97,7 @@ class CameraDevice:
         if self.connected:
             log.debug('cam device close')
             # gp.check_result(gp.gp_camera_exit(self.camera, self.context))
+            # noinspection PyUnresolvedReferences
             gp.gp_camera_exit(self.camera, self.context)
             # log.info("Error closing camera - not opened?")
             self.connected = False
