@@ -203,7 +203,8 @@ class EktaproDevice:
 
     def select(self, slide):
         self.comms(EktaproCommand(self.id).param_random_access(slide), pre_timeout=0, post_timeout=10)
-        self.slide = slide
+        self.get_status()
+        #self.slide = slide
 
     def next(self, pre_timeout=0, post_timeout=0):
         self.comms(EktaproCommand(self.id).direct_slide_forward(), pre_timeout=pre_timeout, post_timeout=post_timeout)
@@ -226,7 +227,6 @@ class EktaproDevice:
                 log.error("get_status invalid response")  # could raise error here?
             else:
                 self.slot = int(reply[2])
-                #
                 self.slide_in_gate = (reply[1] & 8) // 8
                 self.active_lamp = (reply[1] & 4) // 4
                 self.standby = (reply[1] & 2) // 2
@@ -261,15 +261,15 @@ class EktaproDevice:
         if self.slide_lift_motor_error:
             msg = "slide_lift_motor_error\n"
         if self.tray_transport_motor_error:
-            msg = "tray_transport_motor_error\n"
+            msg += "tray_transport_motor_error\n"
         if self.command_error:
-            msg = "command_error\n"
+            msg += "command_error\n"
         if self.overrun_error:
-            msg = "overrun_error\n"
+            msg += "overrun_error\n"
         if self.buffer_overflow_error:
-            msg = "buffer_overflow_error\n"
+            msg += "buffer_overflow_error\n"
         if self.framing_error:
-            msg = "framing_error\n"
+            msg += "framing_error\n"
         if len(msg):
             log.error("Get_status error detected: " + msg)  # could raise error here?
             log.debug(self.get_details())
@@ -449,17 +449,19 @@ class EktaproDevice:
             + " L2:" + str(self.lamp2_status)
         if extended:
             det += "\n Model: " + self.get_model()\
-                + "\n Tray size: " + str(self.tray_size)\
-                + "\n Active lamp: " + ("L2" if self.active_lamp == 1 else "L1")\
-                + "\n Standby: " + ("On" if self.standby == 1 else "Off")\
-                + "\n Power frequency: " + ("60Hz" if self.power_frequency == 1 else "50Hz")\
-                + "\n Autofocus: " + ("On" if self.auto_focus == 1 else "Off")\
-                + "\n Autozero: " + ("On" if self.auto_zero == 1 else "Off")\
-                + "\n Low lamp mode: " + ("On" if self.low_lamp == 1 else "Off")\
-                + "\n High light: " + ("On" if self.high_light == 1 else "Off")\
-                + "\n Slide in gate: " + ("Yes" if self.slide_in_gate == 1 else "No")\
-                + "\n Standby: " + ("On" if self.standby == 1 else "Off")\
-                + "\n Slot: " + str (self.slot)
+                + " Slot: " + str (self.slot)\
+                + " Tray size: " + str(self.tray_size)\
+                + " Slide in gate: " + ("Yes" if self.slide_in_gate == 1 else "No")\
+                + " Standby: " + ("On" if self.standby == 1 else "Off")\
+                + " Active lamp: " + ("L2" if self.active_lamp == 1 else "L1")\
+                + " Standby: " + ("On" if self.standby == 1 else "Off")\
+                + " Power frequency: " + ("60Hz" if self.power_frequency == 1 else "50Hz")\
+                + " Autofocus: " + ("On" if self.auto_focus == 1 else "Off")\
+                + " Autozero: " + ("On" if self.auto_zero == 1 else "Off")\
+                + " Low lamp mode: " + ("On" if self.low_lamp == 1 else "Off")\
+                + " High light: " + ("On" if self.high_light == 1 else "Off")
+
+
         return det
 
 

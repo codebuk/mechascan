@@ -172,7 +172,7 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         # noinspection PyUnresolvedReferences
         self.lbl_slot_status.setText("Slot: " + str(self.msp.get_slot()))
 
-        self.self.lbl_tpt_slot_status.setText("Slide in slot: " + str(self.msp.get_slot()))
+        self.lbl_tpt_slot_status.setText("Slide in slot: " + str(self.msp.get_slide_in_gate()))
 
         if self.sb_start_slot.maximum() != self.msp.tpt.tray_size:
             self.sb_start_slot.setMaximum(self.msp.tpt.tray_size)

@@ -127,6 +127,7 @@ class Process:
                             pass
                     except EktaproError:
                         break
+                    self.tpt.get_status() # update other statuses including slide in gate etc
                     if self.capture_settle_delay > 0:
                         log.info("settle delay (ms) :" + str(self.capture_settle_delay))
                         time.sleep(self.capture_settle_delay / 1000)
@@ -201,8 +202,12 @@ class Process:
             self.tpt.select(slot)
 
     def get_slot(self):
-        with self.lock.acquire_timeout(0):
-            return self.tpt.slide
+        return self.tpt.slide
+
+    def get_slide_in_gate(self):
+        #with self.lock.acquire_timeout(0):
+        #    self.tpt.status_get_tray_position()
+        return self.tpt.slide_in_gate
 
     def home_slot(self):
         with self.lock.acquire_timeout(0):
