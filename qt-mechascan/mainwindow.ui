@@ -314,7 +314,7 @@ QGroupBox::title {
           <widget class="QGroupBox" name="groupBox">
            <property name="styleSheet">
             <string notr="true">QGroupBox {
-    border: 2px solid gray;
+    border: 1px solid gray;
     border-radius: 5px;
     margin-top: 1ex; /* leave space at the top for the title */
 }
@@ -421,7 +421,7 @@ QGroupBox::title {
           <widget class="QGroupBox" name="groupBox_2">
            <property name="styleSheet">
             <string notr="true">QGroupBox {
-    border: 2px solid gray;
+    border: 1px solid gray;
     border-radius: 5px;
     margin-top: 1ex; /* leave space at the top for the title */
 }
@@ -490,7 +490,7 @@ QGroupBox::title {
           <widget class="QGroupBox" name="groupBox_3">
            <property name="styleSheet">
             <string notr="true">QGroupBox {
-    border: 2px solid gray;
+    border: 1px solid gray;
     border-radius: 5px;
     margin-top: 1ex; /* leave space at the top for the title */
 }
@@ -562,7 +562,7 @@ QGroupBox::title {
           <widget class="QGroupBox" name="groupBox_4">
            <property name="styleSheet">
             <string notr="true">QGroupBox {
-    border: 2px solid gray;
+    border: 1px solid gray;
     border-radius: 5px;
     margin-top: 1ex; /* leave space at the top for the title */
 }

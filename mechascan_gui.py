@@ -117,7 +117,8 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
     def scan_stop(self):
         while not self.work_queue.empty():
             log.debug ("clearing task off queue")
-            task = self.work_queue.get_nowait()
+            self.work_queue.get_nowait()
+            #task= None #do something
             self.work_queue.task_done()
         self.work_queue.put(lambda:  self.msp.stop_scan())
 
@@ -130,7 +131,7 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         else:
             self.work_queue.put(lambda:  self.msp.led_off())
 
-    def select_slot(self):
+    def tpt_home(self):
          self.work_queue.put(lambda:  self.msp.select_slot(1))
 
     def tpt_reset(self):
@@ -170,6 +171,9 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.lbl_cam_status.setText("Camera: " + self.msp.cam_port)
         # noinspection PyUnresolvedReferences
         self.lbl_slot_status.setText("Slot: " + str(self.msp.get_slot()))
+
+        self.self.lbl_tpt_slot_status.setText("Slide in slot: " + str(self.msp.get_slot()))
+
         if self.sb_start_slot.maximum() != self.msp.tpt.tray_size:
             self.sb_start_slot.setMaximum(self.msp.tpt.tray_size)
             self.sb_start_slot.setValue(1)
@@ -209,7 +213,7 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.pushButton_capture.clicked.connect(self.scan_current)
 
         self.pushButton_lamp.clicked.connect(self.lamp_on)
-        self.pushButton_tpt_home.clicked.connect(partial(self.select_slot, 1))
+        self.pushButton_tpt_home.clicked.connect(self.tpt_home)
         self.pushButton_tpt_reset.clicked.connect(self.tpt_reset)
 
         self.open_act.triggered.connect(self.open)
@@ -251,6 +255,9 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.lbl_slot_status = QLabel(self)
         self.statusbar.addPermanentWidget(self.lbl_slot_status)
         self.lbl_slot_status.setText("Slot: N/A")
+        self.lbl_tpt_slot_status = QLabel(self)
+        self.statusbar.addPermanentWidget(self.lbl_tpt_slot_status)
+        self.lbl_tpt_slot_status.setText("No slide")
         self.progress = QProgressBar(self)
         self.progress.setMaximumSize(170, 19)
         self.statusbar.addPermanentWidget(self.progress)

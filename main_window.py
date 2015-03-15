@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file './qt-mechascan/mainwindow.ui'
 #
-# Created: Tue Mar  3 23:52:40 2015
+# Created: Sun Mar 15 22:41:37 2015
 #      by: PyQt5 UI code generator 5.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -151,7 +151,7 @@ class Ui_MainWindow(object):
         self.gridLayout_3.setObjectName("gridLayout_3")
         self.groupBox = QtWidgets.QGroupBox(self.widget)
         self.groupBox.setStyleSheet("QGroupBox {\n"
-"    border: 2px solid gray;\n"
+"    border: 1px solid gray;\n"
 "    border-radius: 5px;\n"
 "    margin-top: 1ex; /* leave space at the top for the title */\n"
 "}\n"
@@ -205,7 +205,7 @@ class Ui_MainWindow(object):
         self.gridLayout_3.addWidget(self.groupBox, 8, 0, 1, 2)
         self.groupBox_2 = QtWidgets.QGroupBox(self.widget)
         self.groupBox_2.setStyleSheet("QGroupBox {\n"
-"    border: 2px solid gray;\n"
+"    border: 1px solid gray;\n"
 "    border-radius: 5px;\n"
 "    margin-top: 1ex; /* leave space at the top for the title */\n"
 "}\n"
@@ -240,7 +240,7 @@ class Ui_MainWindow(object):
         self.gridLayout_3.addWidget(self.groupBox_2, 9, 0, 1, 2)
         self.groupBox_3 = QtWidgets.QGroupBox(self.widget)
         self.groupBox_3.setStyleSheet("QGroupBox {\n"
-"    border: 2px solid gray;\n"
+"    border: 1px solid gray;\n"
 "    border-radius: 5px;\n"
 "    margin-top: 1ex; /* leave space at the top for the title */\n"
 "}\n"
@@ -277,7 +277,7 @@ class Ui_MainWindow(object):
         self.gridLayout_3.addWidget(self.groupBox_3, 10, 0, 1, 2)
         self.groupBox_4 = QtWidgets.QGroupBox(self.widget)
         self.groupBox_4.setStyleSheet("QGroupBox {\n"
-"    border: 2px solid gray;\n"
+"    border: 1px solid gray;\n"
 "    border-radius: 5px;\n"
 "    margin-top: 1ex; /* leave space at the top for the title */\n"
 "}\n"

@@ -59,7 +59,9 @@ class CameraDevice:
         self.context = gp.gp_context_new()
         log.debug('init camera')
         # noinspection PyUnresolvedReferences
-        gp.check_result(gp.gp_camera_init(self.camera, self.context))
+
+        #gp.check_result(gp.gp_camera_init(self.camera, self.context))
+        gp.gp_camera_init(self.camera, self.context)
         self.connected = True
         # self.set_config ( self.camera, self.context, 'capturetarget', 'sdram' )
 

@@ -73,6 +73,9 @@ class EktaproDevice:
         self.overrun_error = False
         self.buffer_overflow_error = False
         self.framing_error = False
+        self.slot = 0
+        self.slide_in_gate = False
+        self.highlight = False
 
     def open_port(self, comm_port):
         #self.close()
@@ -91,7 +94,7 @@ class EktaproDevice:
                 self.serial_device.flushOutput()
                 self.serial_device.write(EktaproCommand(0).status_system_return().to_data())
                 self.info = self.serial_device.read(5)
-                # todo use system status as it is not bufferred
+                # todo use system status as it is not buffered
                 if self.info is None or len(self.info) == 0 \
                         or not (self.info[0] % 8 == 6) \
                         or not (self.info[1] // 16 == 13) \
@@ -101,6 +104,8 @@ class EktaproDevice:
                 else:
                     self.port = comm_port
                     self.connected = 1
+                    self.serial_device.timeout = 10
+                    logging.info("Ektapro device detected on :" + comm_port)
                     return True
         except serial.SerialException:
             pass
@@ -175,8 +180,8 @@ class EktaproDevice:
         #there is a an undocumented flag used to indicate reset is complete
         #if the next call
         self.comms(EktaproCommand(self.id).direct_reset_system())
-        # while resetting no serial response so poll up to 10 seconds looking for a response
-        time.sleep(.2)  # stop useless polling
+        # while resetting it is possible no serial response so poll up to 10 seconds looking for a response
+        time.sleep(2)  # stop useless polling & command error if any less
         self.serial_device.flushInput()
         self.serial_device.flushOutput()
         ts = time.time()
@@ -212,7 +217,7 @@ class EktaproDevice:
         if self.slide == -1:
             self.slide = self.tray_size
 
-    def sync(self):
+    def status_get_tray_position(self):
         reply = self.comms(EktaproCommand(self.id).status_get_tray_position(), read_bytes=3)
         if self.connected:
             if (len(reply) != 3) \
@@ -220,7 +225,13 @@ class EktaproDevice:
                     or not (reply[1] // 16 == 10):
                 log.error("get_status invalid response")  # could raise error here?
             else:
-                self.slide = int(str(reply[2]))
+                self.slot = int(reply[2])
+                #
+                self.slide_in_gate = (reply[1] & 8) // 8
+                self.active_lamp = (reply[1] & 4) // 4
+                self.standby = (reply[1] & 2) // 2
+                self.highlight = reply[1] & 1
+        return self.slot
 
     def poll_busy(self, time_out=0.0, desc=""):
         if not self.connected:
@@ -265,6 +276,7 @@ class EktaproDevice:
             raise EktaproError(msg)
         if not busy_check:
             self.get_system_return()  # get the other status data
+            self.status_get_tray_position()
             log.debug(self.get_details())  # dump it all
         return busy
 
@@ -292,7 +304,6 @@ class EktaproDevice:
             self.system_return_clear()
 
     def system_return_clear(self):
-
             self.info = None
             self.type = None
             self.version = None
@@ -304,6 +315,9 @@ class EktaproDevice:
             self.active_lamp = None
             self.standby = None
             self.high_light = None
+            self.slot = 0
+            self.slide_in_gate = None
+            self.highlight = None
 
     # return True if busy
     def get_system_status(self):
@@ -384,7 +398,7 @@ class EktaproDevice:
                 binary_string += bin(c) + " "
             log.debug("Send: " + str(command) +
                       #" hex: " + repr(command_bytes) +
-                      " bin: " + binary_string +
+                      " : " + binary_string +
                       " pre/post timeouts: " + str(pre_timeout) +
                       " - " + str(post_timeout))
         self.poll_busy(pre_timeout, desc="pre timeout ")
@@ -405,12 +419,13 @@ class EktaproDevice:
                 msg = "Error reading from device Received: " + repr(rec) + \
                       " len: " + str(len(rec)) + \
                       " requested: " + str(read_bytes)
-                raise EktaproError(msg)
+                log.debug(msg)
+                #raise EktaproError(msg)
             if self.log_debug:
                 binary_string = "binary - "
                 for c in rec:
                     binary_string += bin(c) + " "
-                log.debug("Received. " +
+                log.debug("Received " +
                           #"Hex: " + repr(rec)
                           binary_string +
                           " len: " + str(len(rec)))
@@ -441,7 +456,10 @@ class EktaproDevice:
                 + "\n Autofocus: " + ("On" if self.auto_focus == 1 else "Off")\
                 + "\n Autozero: " + ("On" if self.auto_zero == 1 else "Off")\
                 + "\n Low lamp mode: " + ("On" if self.low_lamp == 1 else "Off")\
-                + "\n High light: " + ("On" if self.high_light == 1 else "Off")
+                + "\n High light: " + ("On" if self.high_light == 1 else "Off")\
+                + "\n Slide in gate: " + ("Yes" if self.slide_in_gate == 1 else "No")\
+                + "\n Standby: " + ("On" if self.standby == 1 else "Off")\
+                + "\n Slot: " + str (self.slot)
         return det
 
 
@@ -716,7 +734,12 @@ if __name__ == "__main__":
     tpt.reset()
     log.debug(tpt.get_details())
 
-    for l in [1, 2, 3, 4, 5, 6]:
+    log.info( 'sync :' + str(tpt.status_get_tray_position()))
+
+    for l in [1, 2, 3 ,4 ,5 ,6 ,7 ,8]:
         tpt.next(20, 20)
-        tpt.prev(20, 20)
+        log.info( 'sync :' + str(tpt.status_get_tray_position()) + "   in gate: " + str(tpt.slide_in_gate))
+
+
+
 
