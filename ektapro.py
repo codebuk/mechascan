@@ -92,13 +92,9 @@ class EktaproDevice:
             else:
                 self.serial_device.flushInput()
                 self.serial_device.flushOutput()
-                self.serial_device.write(EktaproCommand(0).status_system_return().to_data())
-                self.info = self.serial_device.read(5)
-                # todo use system status as it is not buffered
-                if self.info is None or len(self.info) == 0 \
-                        or not (self.info[0] % 8 == 6) \
-                        or not (self.info[1] // 16 == 13) \
-                        or not (self.info[1] % 2 == 0):
+                self.serial_device.write(EktaproCommand(0).status_system_status().to_data())
+                info = self.serial_device.read(3)
+                if info is None or len(info) == 0 or not (info[0] % 8 == 6) or not info[2] % 4 == 3:
                     logging.info("Not a Ektapro device")
                     self.serial_device = None
                 else:

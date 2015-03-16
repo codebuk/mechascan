@@ -41,6 +41,7 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.lbl_tpt_status = ''
         self.lbl_cam_status = ''
         self.lbl_slot_status = ''
+        self.lbl_tpt_slot_status = ''
         self.auto_orient = True
         self.slide_delay = 0
         self.quality = 0
@@ -171,7 +172,7 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.lbl_cam_status.setText("Camera: " + self.msp.cam_port)
         # noinspection PyUnresolvedReferences
         self.lbl_slot_status.setText("Slot: " + str(self.msp.get_slot()))
-
+        # noinspection PyUnresolvedReferences
         self.lbl_tpt_slot_status.setText("Slide in slot: " + str(self.msp.get_slide_in_gate()))
 
         if self.sb_start_slot.maximum() != self.msp.tpt.tray_size:
