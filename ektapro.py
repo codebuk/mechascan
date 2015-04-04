@@ -39,7 +39,7 @@ class EktaproDevice:
         self.is_busy = True
         self.max_brightness = 100
         self.brightness = 0
-        self.slide = 0
+        self.slide = None
         self.tray_size = 80  # this allows dummy scanning
         self.max_display_tray = 140
         self.info = bytearray()
@@ -81,7 +81,7 @@ class EktaproDevice:
         #self.close()
         log.info("Checking port: " + comm_port)
         try:
-            self.serial_device = serial.serial_for_url(comm_port, 9600, timeout=.1, writeTimeout=.1)
+            self.serial_device = serial.serial_for_url(comm_port, 9600, timeout=.1, writeTimeout=1)
             try:
                 fcntl.flock(self.serial_device, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 log.info("Write-lock file ok: " + comm_port)
@@ -121,6 +121,7 @@ class EktaproDevice:
             self.reset()  # possible command error from serial bus scanning needs to be cleared. 10 second delay!
 
     def close(self):
+        log.debug('ektapro device close')
         if self.connected:
             self.serial_device.close()
         self.port = "Not Connected"
@@ -191,6 +192,7 @@ class EktaproDevice:
                 log.error("Reset timeout: " + str(self.reset_time_out))
                 raise EktaproError("Reset timeout")
         log.debug("reset polled for: " + str(time.time() - ts))
+        self.slide = 0
         #self.get_system_return()
         self.get_status()  # update internal status
 
@@ -200,13 +202,13 @@ class EktaproDevice:
     def select(self, slide):
         self.comms(EktaproCommand(self.id).param_random_access(slide), pre_timeout=0, post_timeout=10)
         self.get_status()
-        #self.slide = slide
+        self.slide = slide
 
     def next(self, pre_timeout=0, post_timeout=0):
         self.comms(EktaproCommand(self.id).direct_slide_forward(), pre_timeout=pre_timeout, post_timeout=post_timeout)
-        self.slide = + 1
+        self.slide += 1
         if self.slide > self.tray_size:
-            self.slide = 0  # ? 1
+            self.slide = 0
 
     def prev(self, pre_timeout=0, post_timeout=1.5):
         self.comms(EktaproCommand(self.id).direct_slide_backward(), pre_timeout=pre_timeout, post_timeout=post_timeout)

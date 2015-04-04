@@ -37,7 +37,7 @@ class GardasoftDevice:
     def open_port(self, comm_port):
         log.info("Trying port: " + comm_port)
         try:
-            collection = [9600, 115200]
+            collection = [9600] #, 115200]
             for speeds in collection:
                 self.ser = serial.serial_for_url(comm_port, speeds, timeout=.1, writeTimeout=.01)
                 log.info("Port opened: " + comm_port)
@@ -49,6 +49,7 @@ class GardasoftDevice:
                     log.info("Check for device at: " + str(speeds) + " baud. Port: " + comm_port)
                     self.ser.flush()
                     self.ser.read(2000)  # clear any junk
+                    self.write_read(b"\n\r", 10) #clear error - ignore response in case unit has characters in buffer
                     self.connected = 1  # allow clear error to access port
                     if self.clear_error():
                         self.ser.timeout = .1  # tried .01 but random errors
@@ -117,6 +118,10 @@ class GardasoftDevice:
                 return 1
             if re.search("GRErr 21", str(info), re.DOTALL):
                 log.debug('Err 21 - Bad command format')
+                return 1
+            #this occurs on startup if there is junk in buffer(s)
+            if re.search("Err 21", str(info), re.DOTALL):
+                log.debug('Err 21 - Bad command format.')
                 return 1
             if re.search("GRE", str(info), re.DOTALL):
                 log.debug('Other error see docs')

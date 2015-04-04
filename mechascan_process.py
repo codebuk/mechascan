@@ -13,6 +13,8 @@ from enum import Enum
 from ektapro import *
 from cam import *
 from gardasoft import *
+import traceback
+import sys
 
 import logging
 logging.basicConfig(level=logging.DEBUG,
@@ -40,6 +42,7 @@ class ProcessError(Exception):
 
 class Process:
     def __init__(self, msg_q, file_q, work_q):
+        self.run = False
         self.msg_queue = msg_q
         self.file_queue = file_q
         self.work_queue = work_q
@@ -65,31 +68,106 @@ class Process:
 
         self.tpt_enabled = True
         self.tpt_port = "Not connected"
+
         self.tpt_connected = False
 
         self.cam_enabled = True
         self.cam_port = "Not connected"
         self.cam_connected = False
 
-        self.cam = CameraDevice()
-        self.led = GardasoftDevice()
-        self.tpt = EktaproDevice()
+        self._cam = CameraDevice()
+        self._led = GardasoftDevice()
+        self._tpt = EktaproDevice()
         self.msg_queue.put("Init done")
 
     def work_threaded(self):
-        thread = threading.Thread(target=self.work)
-        thread.daemon = True        # thread dies when main thread (only non-daemon thread) exits.
-        thread.start()
+        self.thread = threading.Thread(target=self.work)
+        self.thread.daemon = False        # thread dies when main thread (only non-daemon thread) exits.
+        self.thread.start()
 
-    def work (self):
-       while True:
-           log.debug ( "waiting for work")
-           job = self.work_queue.get()
-           job()
-           self.work_queue.task_done()
+    def work(self):
+        self.run = True
+        try:
+            while self.run:
+                log.debug ("waiting for work")
+                job = self.work_queue.get()
+                job()
+                self.work_queue.task_done()
+            log.debug("leaving work thread")
+        except:
+            e = sys.exc_info()[0]
+            log.debug(traceback.format_exc())
+            log.debug(e)
+
+    def stop_scan(self):
+        log.info("stopping scan")
+        self.scan_state = ScanState.stopped
+
+    def end(self):
+        log.debug ("end msp thread")
+        self.tpt_connect (open = False)
+        self.led_connect (open = False)
+        self.cam_connect (open = False)
+        self.run = False
+        return
+
+    def tpt_connect (self, open = True):
+        with self.lock.acquire_timeout(0):
+            if open:
+                self._tpt = EktaproDevice()
+                # ektapro setup
+                self._tpt.open(None)
+                # for gui layer
+                self.tpt_port = self._tpt.port
+                self.tpt_connected = self._tpt.connected
+                self.msg_queue.put("Transport connected")
+            else:
+                self.tpt_port = "Disabled"
+                self.tpt_connected = False
+                self._tpt.close()
+                self._tpt = None
+                self.msg_queue.put("Transport disconnected")
+
+    def cam_connect (self, open = True):
+        with self.lock.acquire_timeout(0):
+            if open:
+                self._cam = CameraDevice()
+                self._cam.open()
+                self.cam_port =self._cam.port
+                self.cam_connected =self._cam.connected
+                self.msg_queue.put("Camera connected")
+            else:
+                self.cam_port = "Disabled"
+                self.cam_connected = False
+                self._cam.close()
+                self._cam = None
+                self.msg_queue.put("Camera disconnected")
+
+    def led_connect (self, open = True):
+        with self.lock.acquire_timeout(0):
+            if open:
+                self._led = GardasoftDevice()
+                self._led.open(None)
+                if self._led.connected:
+                    self._led.version()
+                    self._led.strobe(1, 0, 4000, 4)
+                    self._led.continuous(1, self.led_rest)
+                    self.led_port =self._led.port
+                    self.led_connected =self._led.connected
+                    self.msg_queue.put("Lamp connected")
+            else:
+
+                self.led_port = "Disabled"
+                self.led_connected = False
+                self._led.close()
+                self._led = None
+                self.msg_queue.put("Lamp disconnected")
+
 
     def scan(self, scan_type=ScanType.start_end, start=1, end=1):
         with self.lock.acquire_timeout(0):
+            self.slot_start = 0
+            self.slot_end = 0
             if self.scan_state == ScanState.scanning:
                 raise ProcessError ("Scan re-entered")
             self.scan_state = ScanState.scanning
@@ -97,23 +175,22 @@ class Process:
                 self.slot_start = start
                 self.slot_end = end
                 if self.tpt_enabled:
-                    self.tpt.select(self.slot_start)
+                    self._tpt.select(self.slot_start)
             elif scan_type == ScanType.next:
-                self.tpt.next(post_timeout=0)
-                self.slot_start = self.tpt.slide
-                self.slot_end = self.tpt.slide
+                if self.tpt_enabled:
+                    self._tpt.next(post_timeout=0)
+                    self.slot_start = self._tpt.slide
+                    self.slot_end = self._tpt.slide
             elif scan_type == ScanType.prev:
-                self.tpt.prev(post_timeout=0)
-                self.slot_start = self.tpt.slide
-                self.slot_end = self.tpt.slide
+                if self.tpt_enabled:
+                    self._tpt.prev(post_timeout=0)
+                    self.slot_start = self._tpt.slide
+                    self.slot_end = self._tpt.slide
             elif scan_type == ScanType.current:
-                self.slot_start = self.tpt.slide
-                self.slot_end = self.tpt.slide
+                self.slot_start = self._tpt.slide
+                self.slot_end = self._tpt.slide
             else:
                 raise ProcessError ("Invalid scan type")
-
-            #if not self.led_enabled:
-            #    self.led.continuous(1, 0)
             log.info("scanning slots " + str(self.slot_start) + " to " + str(self.slot_end))
             for slide in range(self.slot_start, self.slot_end + 1):
                 ts = time.time()
@@ -123,24 +200,26 @@ class Process:
                     break
                 if self.tpt_enabled and not scan_type == ScanType.current:
                     try:
-                        while self.tpt.get_status(busy_check=True):
+                        self._tpt.log_debug = False
+                        while self._tpt.get_status(busy_check=True)and (self.scan_state != ScanState.stopped):
                             pass
                     except EktaproError:
                         break
-                    self.tpt.get_status() # update other statuses including slide in gate etc
+                    self._tpt.log_debug = False
+                    self._tpt.get_status() # update other statuses including slide in gate etc
                     if self.capture_settle_delay > 0:
                         log.info("settle delay (ms) :" + str(self.capture_settle_delay))
                         time.sleep(self.capture_settle_delay / 1000)
                 if self.led_enabled:
-                    self.led.continuous(1, self.led_flash)
-                if self.cam_enabled:
+                    self._led.continuous(1, self.led_flash)
+                if self.cam_enabled and self._tpt.slide_in_gate:
                     self.cam_capture()
                 if self.led_enabled:
-                    self.led.continuous(1, self.led_rest)
+                    self._led.continuous(1, self.led_rest)
                 if self.tpt_enabled and (slide != self.slot_end):
                     log.info("set")
-                    self.tpt.next(post_timeout=0)
-                if self.cam_enabled:
+                    self._tpt.next(post_timeout=0)
+                if self.cam_enabled and self._tpt.slide_in_gate:
                     file = "/home/dan/Documents/pics/" + str(slide) + ".jpg"
                     log.debug("Capture complete - Now save" + file)
                     self.cam_save(file)
@@ -149,82 +228,67 @@ class Process:
             self.stop_scan()
 
     def cam_capture(self):
-        self.cam.open()
-        self.cam.capture()
+        if self._cam is not None:
+            self._cam.open()
+            self._cam.capture()
 
     def cam_save(self, file):
-        self.cam.save(file)
-        self.cam.close()
-
-    def connect_hardware(self):
-        with self.lock.acquire_timeout(0):
-            # gardasoft setup
-            self.led.open(None)
-            if self.led.connected:
-                self.led.version()
-                self.led.strobe(1, 0, 4000, 4)
-                self.led.continuous(1, self.led_rest)
-                self.led_port = self.led.port
-                self.led_connected = self.led.connected
-
-            # ektapro setup
-            self.tpt.open(None)
-            # for gui layer
-            self.tpt_port = self.tpt.port
-            self.tpt_connected = self.tpt.connected
-
-            #cam
-            self.cam.open()
-            self.cam_port = self.cam.port
-            self.cam_connected = self.cam.connected
-
-    def disconnect_hardware(self):
-        with self.lock.acquire_timeout(0):
-            self.led.close()
-            self.cam.close()
-            self.tpt.reset()  # move back to 0 position
-            self.tpt.close()
+        if self._cam is not None:
+            self._cam.save(file)
+            self._cam.close()
 
     def led_on(self):
         with self.lock.acquire_timeout(0):
-            self.led.continuous(1, self.led_flash)
+            if self._led is not None:
+               self._led.continuous(1, self.led_flash)
 
     def led_off(self):
         with self.lock.acquire_timeout(0):
-            self.led.continuous(1, 0)
-
-    def stop_scan(self):
-        log.info("stopping scan")
-        self.scan_state = ScanState.stopped
+            if self._led is not None:
+                self._led.continuous(1, 0)
 
     def select_slot(self, slot):
         with self.lock.acquire_timeout(0):
-            self.tpt.select(slot)
+            if self._tpt is not None:
+                self._tpt.select(slot)
 
     def get_slot(self):
-        return self.tpt.slide
+        if self._tpt is not None:
+            return self._tpt.slide
+        else:
+            return 0
 
     def get_slide_in_gate(self):
-        #with self.lock.acquire_timeout(0):
-        #    self.tpt.status_get_tray_position()
-        return self.tpt.slide_in_gate
+        if self._tpt is not None:
+            return self._tpt.slide_in_gate
+        else:
+            return False
+
+    def get_tpt_tray_size(self):
+        if self._tpt is not None:
+            return self._tpt.tray_size
+        else:
+            return 0
 
     def home_slot(self):
         with self.lock.acquire_timeout(0):
-            self.tpt.select(0)
+            if self._tpt is not None:
+                self._tpt.select(0)
 
     def tpt_reset(self):
         with self.lock.acquire_timeout(0):
-            self.tpt.reset()
+            if self._tpt is not None:
+                self._tpt.reset()
 
     def next_slot(self):
         with self.lock.acquire_timeout(0):
-            self.tpt.next(pre_timeout=0, post_timeout=0)
+            if self._led is not None:
+                self._tpt.next(pre_timeout=0, post_timeout=0)
 
     def prev_slot(self):
         with self.lock.acquire_timeout(0):
-            self.tpt.prev(pre_timeout=1.5, post_timeout=1.5)
-
+            if self._led is not None:
+                self._tpt.prev(pre_timeout=1.5, post_timeout=1.5)
 
 class TimeoutLock(object):
     def __init__(self):

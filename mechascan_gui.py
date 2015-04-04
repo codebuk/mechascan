@@ -17,10 +17,6 @@ from queue import Queue
 # ui generated code
 from main_window import *
 
-# external libs
-#import exifread
-
-
 logging.basicConfig(level=logging.DEBUG,
                     format="%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s",
                     datefmt='%M:%S')
@@ -46,7 +42,8 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.slide_delay = 0
         self.quality = 0
 
-        self.progress = None
+        self.progressbar = None
+
         self.popup = None
         self.pixmap = None
         self.ss_timer = None
@@ -60,7 +57,9 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.file_queue = Queue() #process to gui - filename of images when they are ready for display
         self.work_queue = Queue() #gui -> process pass lambda commands
         self.msp = mechascan_process.Process(self.msg_queue, self.file_queue, self.work_queue)
-        self.work_queue.put(lambda:  self.msp.connect_hardware())
+        self.work_queue.put(lambda:  self.msp.tpt_connect())
+        self.work_queue.put(lambda:  self.msp.led_connect())
+        self.work_queue.put(lambda:  self.msp.cam_connect())
         self.msp.work_threaded()
 
         self.setupUi(self)
@@ -96,6 +95,13 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.timer.start(5)
         self.resize(1000, 600)
 
+    def closeEvent(self, event):
+        #stop current action and drain work queue
+        self.scan_stop()
+        #end thread
+        self.work_queue.put(lambda: self.msp.end())
+        event.accept()
+
     # scan functions
     def scan(self):
         if self.msp_update_from_gui():
@@ -119,9 +125,9 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         while not self.work_queue.empty():
             log.debug ("clearing task off queue")
             self.work_queue.get_nowait()
-            #task= None #do something
-            self.work_queue.task_done()
-        self.work_queue.put(lambda:  self.msp.stop_scan())
+            self.work_queue.task_done() # mark as done
+        # do not use queue as it will not break long running process
+        self.msp.stop_scan()
 
     def tpt_slot_current(self, x):
         self.work_queue.put(lambda:  self.msp.select_slot(x))
@@ -172,14 +178,27 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.lbl_cam_status.setText("Camera: " + self.msp.cam_port)
         # noinspection PyUnresolvedReferences
         self.lbl_slot_status.setText("Slot: " + str(self.msp.get_slot()))
-        # noinspection PyUnresolvedReferences
-        self.lbl_tpt_slot_status.setText("Slide in slot: " + str(self.msp.get_slide_in_gate()))
+        if self.msp.get_slide_in_gate():
+            # noinspection PyUnresolvedReferences
+            self.lbl_tpt_slot_status.setText("  Slide in slot ")
+            # noinspection PyUnresolvedReferences
+            self.lbl_tpt_slot_status.setStyleSheet("QLabel { background-color : green; color : white; }")
+        else:
+            # noinspection PyUnresolvedReferences
+            self.lbl_tpt_slot_status.setText("No slide in slot" )
+            # noinspection PyUnresolvedReferences
+            self.lbl_tpt_slot_status.setStyleSheet("QLabel { background-color : red; color : black; }")
 
-        if self.sb_start_slot.maximum() != self.msp.tpt.tray_size:
-            self.sb_start_slot.setMaximum(self.msp.tpt.tray_size)
+        if self.sb_start_slot.maximum() != self.msp.get_tpt_tray_size():
+            self.sb_start_slot.setMaximum(self.msp.get_tpt_tray_size())
             self.sb_start_slot.setValue(1)
-            self.sb_end_slot.setMaximum(self.msp.tpt.tray_size)
-            self.sb_end_slot.setValue(self.msp.tpt.tray_size)
+            self.sb_end_slot.setMaximum(self.msp.get_tpt_tray_size())
+            self.sb_end_slot.setValue(self.msp.get_tpt_tray_size())
+        if self.msp.get_slot() is None:
+            self.progressbar.setRange (0,0)
+        else:
+            self.progressbar.setRange (0,self.msp.get_tpt_tray_size())
+            self.progressbar.setValue (self.msp.get_slot())
 
     def msp_update_from_gui(self):
         self.msp.led_enabled = self.check_led.isChecked()
@@ -190,11 +209,11 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
 
         # check if ok to start
         msg = ""
-        if self.msp.led_enabled and not self.msp.led.connected:
+        if self.msp.led_enabled and not self.msp.led_connected:
             msg = "Lamp not connected\n\n"
-        if self.msp.tpt_enabled and not self.msp.tpt.connected:
+        if self.msp.tpt_enabled and not self.msp.tpt_connected:
             msg += "Transport not connected\n\n"
-        if self.msp.cam_enabled and not self.msp.cam.connected:
+        if self.msp.cam_enabled and not self.msp.cam_connected:
             msg += "Camera not connected"
         if msg:
             # noinspection PyCallByClass,PyArgumentList,PyTypeChecker
@@ -203,8 +222,38 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         else:
             return True
 
+    def led_check_change(self, event):
+        if event == 2:
+            log.debug("led open")
+            self.work_queue.put(lambda:  self.msp.led_connect())
+        elif event == 0:
+            log.debug("led close")
+            self.work_queue.put(lambda:  self.msp.led_connect(open = False))
+
+    def cam_check_change(self, event):
+        if event == 2:
+            log.debug("cam open")
+            self.work_queue.put(lambda:  self.msp.cam_connect())
+        elif event == 0:
+            log.debug("cam close")
+            self.work_queue.put(lambda:  self.msp.cam_connect(open = False))
+
+    def tpt_check_change(self, event):
+        if event == 2:
+            log.debug("tpt open")
+            self.work_queue.put(lambda:  self.msp.tpt_connect())
+        elif event == 0:
+            log.debug("tpt close")
+            self.work_queue.put(lambda:  self.msp.tpt_connect(open = False))
+
     # noinspection PyUnresolvedReferences
     def create_actions(self):
+
+        self.check_tpt.stateChanged.connect(self.tpt_check_change)
+        self.check_led.stateChanged.connect(self.led_check_change)
+        self.check_cam.stateChanged.connect(self.cam_check_change)
+
+
         # connect to uic generated objects
         self.tb_play.clicked.connect(self.scan)
         self.tb_stop.clicked.connect(self.scan_stop)
@@ -222,7 +271,7 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.print_act.triggered.connect(self.print_img)
         self.save_act.triggered.connect(self.save_img)
         self.close_act.triggered.connect(self.close)
-        self.exit_act.triggered.connect(self.exit)
+        #self.exit_act.triggered.connect(self.exit_handler)
         self.fulls_act.triggered.connect(self.toggle_fs)
         self.ss_act.triggered.connect(self.toggle_slideshow)
         self.ss_next_act.triggered.connect(self.set_slide_type)
@@ -259,15 +308,13 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
         self.lbl_tpt_slot_status = QLabel(self)
         self.statusbar.addPermanentWidget(self.lbl_tpt_slot_status)
         self.lbl_tpt_slot_status.setText("No slide")
-        self.progress = QProgressBar(self)
-        self.progress.setMaximumSize(170, 19)
-        self.statusbar.addPermanentWidget(self.progress)
+        self.progressbar = QProgressBar(self)
+        self.progressbar.setMaximumSize(170, 19)
+        self.progressbar.setFormat ("Slot:%v  (%p%)")
+        self.progressbar.setRange (0,0)
+        self.statusbar.addPermanentWidget(self.progressbar)
 
-    def exit(self):
-        self.msp.cam.close()
-        self.msp.tpt.close()
-        self.msp.led.close()
-        self.close()
+
 
     def create_menu(self):
         self.popup = QMenu(self)
@@ -631,9 +678,7 @@ class ImageViewer(QApplication):
         self.win = MechascanSlideGUI()
         self.win.show()
 
-
 if __name__ == '__main__':
     import sys
     app = ImageViewer(sys.argv)
-    app.exec_()
-    log.debug("mechanik end....")
+    sys.exit(app.exec_()) #without sys.exit does not exit...
