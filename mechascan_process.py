@@ -13,8 +13,6 @@ from enum import Enum
 from ektapro import *
 from cam import *
 from gardasoft import *
-import traceback
-import sys
 
 import logging
 logging.basicConfig(level=logging.DEBUG,
@@ -75,9 +73,9 @@ class Process:
         self.cam_port = "Not connected"
         self.cam_connected = False
 
-        self._cam = CameraDevice()
-        self._led = GardasoftDevice()
-        self._tpt = EktaproDevice()
+        self._cam = None #CameraDevice()
+        self._led = None #GardasoftDevice()
+        self._tpt = None #EktaproDevice()
         self.msg_queue.put("Init done")
 
     def work_threaded(self):
@@ -87,17 +85,13 @@ class Process:
 
     def work(self):
         self.run = True
-        try:
-            while self.run:
-                log.debug ("waiting for work")
-                job = self.work_queue.get()
-                job()
-                self.work_queue.task_done()
-            log.debug("leaving work thread")
-        except:
-            e = sys.exc_info()[0]
-            log.debug(traceback.format_exc())
-            log.debug(e)
+        while self.run:
+           log.debug ("waiting for work")
+           job = self.work_queue.get()
+           job()
+           self.work_queue.task_done()
+        log.debug("leaving work thread")
+
 
     def stop_scan(self):
         log.info("stopping scan")
@@ -166,8 +160,6 @@ class Process:
 
     def scan(self, scan_type=ScanType.start_end, start=1, end=1):
         with self.lock.acquire_timeout(0):
-            self.slot_start = 0
-            self.slot_end = 0
             if self.scan_state == ScanState.scanning:
                 raise ProcessError ("Scan re-entered")
             self.scan_state = ScanState.scanning
@@ -177,15 +169,13 @@ class Process:
                 if self.tpt_enabled:
                     self._tpt.select(self.slot_start)
             elif scan_type == ScanType.next:
-                if self.tpt_enabled:
-                    self._tpt.next(post_timeout=0)
-                    self.slot_start = self._tpt.slide
-                    self.slot_end = self._tpt.slide
+                self._tpt.next(post_timeout=0)
+                self.slot_start = self._tpt.slide
+                self.slot_end = self._tpt.slide
             elif scan_type == ScanType.prev:
-                if self.tpt_enabled:
-                    self._tpt.prev(post_timeout=0)
-                    self.slot_start = self._tpt.slide
-                    self.slot_end = self._tpt.slide
+                self._tpt.prev(post_timeout=0)
+                self.slot_start = self._tpt.slide
+                self.slot_end = self._tpt.slide
             elif scan_type == ScanType.current:
                 self.slot_start = self._tpt.slide
                 self.slot_end = self._tpt.slide
@@ -212,14 +202,14 @@ class Process:
                         time.sleep(self.capture_settle_delay / 1000)
                 if self.led_enabled:
                     self._led.continuous(1, self.led_flash)
-                if self.cam_enabled and self._tpt.slide_in_gate:
+                if self.cam_enabled:
                     self.cam_capture()
                 if self.led_enabled:
                     self._led.continuous(1, self.led_rest)
                 if self.tpt_enabled and (slide != self.slot_end):
                     log.info("set")
                     self._tpt.next(post_timeout=0)
-                if self.cam_enabled and self._tpt.slide_in_gate:
+                if self.cam_enabled:
                     file = "/home/dan/Documents/pics/" + str(slide) + ".jpg"
                     log.debug("Capture complete - Now save" + file)
                     self.cam_save(file)
@@ -228,68 +218,56 @@ class Process:
             self.stop_scan()
 
     def cam_capture(self):
-        if self._cam is not None:
-            self._cam.open()
-            self._cam.capture()
+       self._cam.open()
+       self._cam.capture()
 
     def cam_save(self, file):
-        if self._cam is not None:
-            self._cam.save(file)
-            self._cam.close()
+       self._cam.save(file)
+       self._cam.close()
 
     def led_on(self):
         with self.lock.acquire_timeout(0):
-            if self._led is not None:
-               self._led.continuous(1, self.led_flash)
+           self._led.continuous(1, self.led_flash)
 
     def led_off(self):
         with self.lock.acquire_timeout(0):
-            if self._led is not None:
-                self._led.continuous(1, 0)
+           self._led.continuous(1, 0)
 
     def select_slot(self, slot):
         with self.lock.acquire_timeout(0):
-            if self._tpt is not None:
-                self._tpt.select(slot)
+            self._tpt.select(slot)
 
     def get_slot(self):
         if self._tpt is not None:
             return self._tpt.slide
         else:
-            return 0
+            return "N/A"
 
     def get_slide_in_gate(self):
         if self._tpt is not None:
             return self._tpt.slide_in_gate
         else:
-            return False
-
-    def get_tpt_tray_size(self):
-        if self._tpt is not None:
-            return self._tpt.tray_size
-        else:
-            return 0
+            return "N/A"
 
     def home_slot(self):
         with self.lock.acquire_timeout(0):
-            if self._tpt is not None:
-                self._tpt.select(0)
+            self._tpt.select(0)
 
     def tpt_reset(self):
         with self.lock.acquire_timeout(0):
-            if self._tpt is not None:
-                self._tpt.reset()
+            self._tpt.reset()
 
     def next_slot(self):
         with self.lock.acquire_timeout(0):
-            if self._led is not None:
-                self._tpt.next(pre_timeout=0, post_timeout=0)
+            self._tpt.next(pre_timeout=0, post_timeout=0)
 
     def prev_slot(self):
         with self.lock.acquire_timeout(0):
-            if self._led is not None:
-                #yep magic numbers - we are dealing with hardware
-                self._tpt.prev(pre_timeout=1.5, post_timeout=1.5)
+            self._tpt.prev(pre_timeout=1.5, post_timeout=1.5)
+
+    def get_tpt_tray_size(self):
+        return self._tpt.tray_size
+
 
 class TimeoutLock(object):
     def __init__(self):
