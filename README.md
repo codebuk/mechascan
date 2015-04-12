@@ -11,12 +11,17 @@ Fedora 21 install
 
 Manually install libgphoto2 
 
-Edit /etc/ld.so.conf
+then....
+
+# sudo vi /etc/ld.so.conf
 
 add /usr/local/lib/ to top of file 
 
-As root run ldconfig --verbose | grep gpho
+As root run
+ 
+#  ldconfig --verbose | grep gpho
 
+eg:
 [root@spain-dnt-com-au ~]# ldconfig --verbose | grep gph
 ldconfig: Can't stat /usr/lib64/nx/X11: No such file or directory
 ldconfig: Can't stat /libx32: No such file or directory
@@ -31,6 +36,18 @@ ldconfig: Can't stat /usr/libx32: No such file or directory
 	libgphoto2.so.6 -> libgphoto2.so.6.0.0
 	libgphoto2_port.so.10 -> libgphoto2_port.so.10.1.1
 [root@spain-dnt-com-au ~]# exit
+
+then 
+
+# su
+
+add path 
+
+# PKG_CONFIG_PATH="/usr/local/lib/pkgconfig/"; export PKG_CONFIG_PATH
+
+install 
+
+# python3 setup.py install
 
 
 You can list the directories pkg-config looks in by default using:

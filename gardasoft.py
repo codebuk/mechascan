@@ -39,7 +39,7 @@ class GardasoftDevice:
         try:
             collection = [9600] #, 115200]
             for speeds in collection:
-                self.ser = serial.serial_for_url(comm_port, speeds, timeout=.1, writeTimeout=.01)
+                self.ser = serial.serial_for_url(comm_port, speeds, timeout=.1, writeTimeout=.1)
                 log.info("Port opened: " + comm_port)
                 try:
                     fcntl.flock(self.ser, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -49,7 +49,7 @@ class GardasoftDevice:
                     log.info("Check for device at: " + str(speeds) + " baud. Port: " + comm_port)
                     self.ser.flush()
                     self.ser.read(2000)  # clear any junk
-                    self.write_read(b"\n\r", 10) #clear error - ignore response in case unit has characters in buffer
+                    self.write_read(b"\r", 10) #clear error - ignore response in case unit has characters in buffer
                     self.connected = 1  # allow clear error to access port
                     if self.clear_error():
                         self.ser.timeout = .1  # tried .01 but random errors
@@ -105,24 +105,25 @@ class GardasoftDevice:
         return ""
             
     def clear_error(self):
-        info = self.write_read(b"GR\n\r", 10)
+        #info = self.write_read(b"GR\n\r", 10)
+        info = self.write_read(b"GR\r", 10)
         if info:
-            er = re.search("\A(GR\n\r>)\Z", str(info), re.DOTALL)
+            er = re.search("\A(GR\n\n>)\Z", str(info), re.DOTALL)
             if er:
                 log.debug('clear error OK')
+                return 1
+            if re.search("Err 21", str(info), re.DOTALL):
+                log.debug('Err 21 - No error to clear!')
                 return 1
             log.error("clear error found error. Response: " + repr(info))  # do not raise error on clear error
             er = re.search("GREC1", str(info), re.DOTALL)
             if er:
                 log.debug('max current clear ok')
                 return 1
-            if re.search("GRErr 21", str(info), re.DOTALL):
-                log.debug('Err 21 - Bad command format')
-                return 1
             #this occurs on startup if there is junk in buffer(s)
-            if re.search("Err 21", str(info), re.DOTALL):
-                log.debug('Err 21 - Bad command format.')
-                return 1
+            #if re.search("Err 21", str(info), re.DOTALL):
+            #     log.debug('Err 21 - Bad command format.')
+            #     return 1
             if re.search("GRE", str(info), re.DOTALL):
                 log.debug('Other error see docs')
                 return 1

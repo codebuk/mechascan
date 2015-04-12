@@ -13,6 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+#https://github.com/codebuk/python-gphoto2/commit/588e0e0b81f9bd8d6eab5ef1dbac9bab31d3510f
+
 import logging
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
@@ -24,7 +27,6 @@ import gphoto2 as gp
 class CameraDevice:
     def __init__(self):
         log.debug('cam device init')
-
         self.camera = None
         self.path = None
         self.context = None
@@ -50,23 +52,26 @@ class CameraDevice:
         # log.info ( name + " type : " + str(widget_type) + " old value : " +
         # str(widget_value) + " new value : " + value)
 
+
+    def use_sdram (self):
+        self.set_config ( self.camera, self.context, 'capturetarget', 'sdram' )
+
+
     def open(self):
         log.debug('open')
-        # gp.check_result(gp.use_python_logging())
+        gp.check_result(gp.use_python_logging())
         log.debug('allocate memory')
         # noinspection PyUnresolvedReferences
-        gp.gp_camera_new()
+        #gp.gp_camera_new()
         # noinspection PyUnresolvedReferences
         self.camera = gp.check_result(gp.gp_camera_new())
         # noinspection PyUnresolvedReferences
         self.context = gp.gp_context_new()
         log.debug('init camera')
         # noinspection PyUnresolvedReferences
-
-        #gp.check_result(gp.gp_camera_init(self.camera, self.context))
-        gp.gp_camera_init(self.camera, self.context)
+        gp.check_result(gp.gp_camera_init(self.camera, self.context))
+        #gp.gp_camera_init(self.camera, self.context)
         self.connected = True
-        # self.set_config ( self.camera, self.context, 'capturetarget', 'sdram' )
 
     def capture(self):
         if self.connected:
@@ -94,7 +99,7 @@ class CameraDevice:
             # noinspection PyUnresolvedReferences
             gp.check_result(gp.gp_file_save(camera_file, name))
             # noinspection PyUnresolvedReferences
-            gp.check_result(gp.gp_camera_file_delete(self.camera, self.path.folder, self.path.name, self.context))
+            #gp.check_result(gp.gp_camera_file_delete(self.camera, self.path.folder, self.path.name, self.context))
         else:
             log.info("save failed")
 
@@ -115,9 +120,10 @@ if __name__ == "__main__":
     logit = logging.getLogger('gphoto2')
     logit.setLevel(logging.INFO)
 
-    for x in range(0, 3):
+    for x in range(0, 1):
         t = CameraDevice()
         t.open()
+        t.use_sdram()
         ok = t.capture()
         f = "test.jpg"
         log.debug("Capture complete - Now save file: " + f)
