@@ -288,6 +288,7 @@ class Process:
     def prev_slot(self):
         with self.lock.acquire_timeout(0):
             if self._led is not None:
+                #yep magic numbers - we are dealing with hardware
                 self._tpt.prev(pre_timeout=1.5, post_timeout=1.5)
 
 class TimeoutLock(object):
