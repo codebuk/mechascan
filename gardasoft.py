@@ -92,7 +92,7 @@ class GardasoftDevice:
             return ""
 
     def version(self):
-        info = self.write_read(b"VR\n\r", 20)
+        info = self.write_read(b"VR\r", 20)
         if info:
             ver = re.search("\A.*VR(.*)\n\r>\Z", str(info), re.DOTALL)
             if ver:
@@ -106,9 +106,9 @@ class GardasoftDevice:
             
     def clear_error(self):
         #info = self.write_read(b"GR\n\r", 10)
-        info = self.write_read(b"GR\r", 10)
+        info = self.write_read(b"GR\r", 20)
         if info:
-            er = re.search("\A(GR\n\n>)\Z", str(info), re.DOTALL)
+            er = re.search("\A(GR\n\r>)\Z", str(info), re.DOTALL)
             if er:
                 log.debug('clear error OK')
                 return 1

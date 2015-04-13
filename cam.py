@@ -39,26 +39,36 @@ class CameraDevice:
 
     # noinspection PyUnresolvedReferences
     def set_config(self, camera, context, name, value):
-        # get configuration tree
-        log.debug('set config')
-        # noinspection PyUnresolvedReferences
-        self.config = gp.check_result(gp.gp_camera_get_config(camera, context))
-        # noinspection PyUnresolvedReferences
-        widget_child = gp.check_result(gp.gp_widget_get_child_by_name(self.config, name))
-        # noinspection PyUnresolvedReferences
-        widget_type = gp.check_result(gp.gp_widget_get_type(widget_child))
-        widget_value = gp.check_result(gp.gp_widget_get_value(widget_child))
-        # noinspection PyUnresolvedReferences
-        gp.check_result(gp.gp_widget_set_value(widget_child, value))
-        # noinspection PyUnresolvedReferences
-        gp.check_result(gp.gp_camera_set_config(camera, self.config, context))
-        log.info(name + " type : " + str(widget_type) + " old value : " +
-                 str(widget_value) + " new value : " + value)
+        if self.connected:
+            # get configuration tree
+            log.debug('set config')
+            # noinspection PyUnresolvedReferences
+            self.config = gp.check_result(gp.gp_camera_get_config(camera, context))
+            # noinspection PyUnresolvedReferences
+            widget_child = gp.check_result(gp.gp_widget_get_child_by_name(self.config, name))
+            # noinspection PyUnresolvedReferences
+            widget_type = gp.check_result(gp.gp_widget_get_type(widget_child))
+
+            # check value in range
+            count = gp.check_result(gp.gp_widget_count_choices(widget_child))
+            log.debug ("Count choices: " + str(count))
+            if value < 0 or value >= count:
+                log.debug('Parameter out of count choices range')
+                raise
+
+            str_value = gp.check_result(gp.gp_widget_get_choice(widget_child, value))
+            log.debug ("Get choice repr: " + str_value)
+            widget_value = gp.check_result(gp.gp_widget_get_value(widget_child))
+            log.debug ("Get value: " + widget_value)
+            # noinspection PyUnresolvedReferences
+            gp.check_result(gp.gp_widget_set_value(widget_child, str_value))
+            # noinspection PyUnresolvedReferences
+            gp.check_result(gp.gp_camera_set_config(camera, self.config, context))
 
     def use_sdram(self):
-        self.set_config(self.camera, self.context, 'capturetarget', '0')
+        self.set_config(self.camera, self.context, 'capturetarget', 0)
 
-    # noinspection PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences
+    # noinspection PyUnresolvedReferences
     def open(self):
         self.connected = False
         log.debug('open')
@@ -81,7 +91,7 @@ class CameraDevice:
             # some other error we can't handle here
             raise
 
-    # noinspection PyUnresolvedReferences,PyUnresolvedReferences
+    # noinspection PyUnresolvedReferences
     def capture(self):
         if self.connected:
             log.debug('capture')
@@ -100,7 +110,7 @@ class CameraDevice:
 
     def save(self, name):
         log.debug('save')
-        if self.capture_ok:
+        if self.connected and self.capture_ok:
             # noinspection PyUnresolvedReferences
             camera_file = gp.check_result(gp.gp_camera_file_get(
                 self.camera, self.path.folder, self.path.name, gp.GP_FILE_TYPE_NORMAL, self.context))

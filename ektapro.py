@@ -374,6 +374,10 @@ class EktaproDevice:
         self.buffer_overflow_error = 0
         self.framing_error = 0
 
+    def get_slide_in_gate(self):
+        self.status_get_tray_position()
+        return self.slide_in_gate
+
     def comms(self, command, read_bytes=0, pre_timeout=0.0, post_timeout=0.0):
         # we do not rely of buffering so check
         #todo can throw 'OSError: [Errno 5] Input/output error'

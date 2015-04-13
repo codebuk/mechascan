@@ -127,7 +127,8 @@ class Process:
             if open:
                 self._cam = CameraDevice()
                 self._cam.open()
-                self.cam_port =self._cam.port
+                self.cam_port = self._cam.port
+                self._cam.use_sdram()
                 self.cam_connected =self._cam.connected
                 self.msg_queue.put("Camera connected")
             else:
@@ -143,6 +144,7 @@ class Process:
                 self._led = GardasoftDevice()
                 self._led.open(None)
                 if self._led.connected:
+                    self._led.status()
                     self._led.version()
                     self._led.strobe(1, 0, 4000, 4)
                     self._led.continuous(1, self.led_rest)
@@ -196,13 +198,14 @@ class Process:
                     except EktaproError:
                         break
                     self._tpt.log_debug = False
-                    self._tpt.get_status() # update other statuses including slide in gate etc
+                    self._tpt.get_status() # update status including slide in gate etc
                     if self.capture_settle_delay > 0:
                         log.info("settle delay (ms) :" + str(self.capture_settle_delay))
                         time.sleep(self.capture_settle_delay / 1000)
                 if self.led_enabled:
                     self._led.continuous(1, self.led_flash)
-                if self.cam_enabled:
+                #get_slide_in_gate
+                if self.cam_enabled and self._tpt.slide_in_gate: #  and self._tpt.slide_in_gate:
                     self.cam_capture()
                 if self.led_enabled:
                     self._led.continuous(1, self.led_rest)
