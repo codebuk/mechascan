@@ -14,9 +14,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#https://github.com/codebuk/python-gphoto2/commit/588e0e0b81f9bd8d6eab5ef1dbac9bab31d3510f
+# https://github.com/codebuk/python-gphoto2/commit/588e0e0b81f9bd8d6eab5ef1dbac9bab31d3510f
 
 import logging
+
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
                     datefmt='%M:%S')
@@ -30,12 +31,13 @@ class CameraDevice:
         self.camera = None
         self.path = None
         self.context = None
+        self.summary = ""
         self.connected = True
         self.config = None
         self.port = "Auto"
         self.capture_ok = False
 
-
+    # noinspection PyUnresolvedReferences
     def set_config(self, camera, context, name, value):
         # get configuration tree
         log.debug('set config')
@@ -43,40 +45,46 @@ class CameraDevice:
         self.config = gp.check_result(gp.gp_camera_get_config(camera, context))
         # noinspection PyUnresolvedReferences
         widget_child = gp.check_result(gp.gp_widget_get_child_by_name(self.config, name))
-        # widget_type = gp.check_result(gp.gp_widget_get_type(widget_child))
-        # widget_value = gp.check_result(gp.gp_widget_get_value(widget_child))
+        # noinspection PyUnresolvedReferences
+        widget_type = gp.check_result(gp.gp_widget_get_type(widget_child))
+        widget_value = gp.check_result(gp.gp_widget_get_value(widget_child))
         # noinspection PyUnresolvedReferences
         gp.check_result(gp.gp_widget_set_value(widget_child, value))
         # noinspection PyUnresolvedReferences
         gp.check_result(gp.gp_camera_set_config(camera, self.config, context))
-        # log.info ( name + " type : " + str(widget_type) + " old value : " +
-        # str(widget_value) + " new value : " + value)
+        log.info(name + " type : " + str(widget_type) + " old value : " +
+                 str(widget_value) + " new value : " + value)
 
+    def use_sdram(self):
+        self.set_config(self.camera, self.context, 'capturetarget', '0')
 
-    def use_sdram (self):
-        self.set_config ( self.camera, self.context, 'capturetarget', 'sdram' )
-
-
+    # noinspection PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences,PyUnresolvedReferences
     def open(self):
+        self.connected = False
         log.debug('open')
         gp.check_result(gp.use_python_logging())
-        log.debug('allocate memory')
-        # noinspection PyUnresolvedReferences
-        #gp.gp_camera_new()
-        # noinspection PyUnresolvedReferences
-        self.camera = gp.check_result(gp.gp_camera_new())
-        # noinspection PyUnresolvedReferences
         self.context = gp.gp_context_new()
-        log.debug('init camera')
-        # noinspection PyUnresolvedReferences
-        gp.check_result(gp.gp_camera_init(self.camera, self.context))
-        #gp.gp_camera_init(self.camera, self.context)
-        self.connected = True
+        try:
+            self.camera = gp.check_result(gp.gp_camera_new())
+            self.camera.init(self.context)
+            self.summary = self.camera.get_summary(self.context)
+            log.debug(str(self.summary))
+            log.debug('init camera')
+            self.connected = True
+        except gp.GPhoto2Error as ex:
+            if ex.code == gp.GP_ERROR_MODEL_NOT_FOUND:
+                log.debug("No camera found")
+                return False
+            elif ex.code == gp.GP_ERROR_IO_USB_CLAIM:
+                log.debug("Camera in use by another process: " + ex.string)
+                return False
+            # some other error we can't handle here
+            raise
 
+    # noinspection PyUnresolvedReferences,PyUnresolvedReferences
     def capture(self):
         if self.connected:
             log.debug('capture')
-            # noinspection PyUnresolvedReferences
             error, self.path = gp.gp_camera_capture(self.camera, gp.GP_CAPTURE_IMAGE, self.context)
             if error:
                 log.error("Image capture failed " + str(error))
@@ -108,10 +116,13 @@ class CameraDevice:
             log.debug('cam device close')
             # gp.check_result(gp.gp_camera_exit(self.camera, self.context))
             # noinspection PyUnresolvedReferences
+            #????        camera.exit(context)
+
             gp.gp_camera_exit(self.camera, self.context)
             # log.info("Error closing camera - not opened?")
             self.connected = False
             return 0
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG,

@@ -23,6 +23,7 @@
 """
 from enumerate_serial import *
 import logging
+
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
                     datefmt='%M:%S')
@@ -78,7 +79,7 @@ class EktaproDevice:
         self.highlight = False
 
     def open_port(self, comm_port):
-        #self.close()
+        # self.close()
         log.info("Checking port: " + comm_port)
         try:
             self.serial_device = serial.serial_for_url(comm_port, 9600, timeout=.1, writeTimeout=1)
@@ -173,7 +174,7 @@ class EktaproDevice:
         self.standby = False
 
     def reset(self):
-        #when reset device might respond with not busy
+        # when reset device might respond with not busy
         #there is a an undocumented flag used to indicate reset is complete
         #if the next call
         self.comms(EktaproCommand(self.id).direct_reset_system())
@@ -302,20 +303,20 @@ class EktaproDevice:
             self.system_return_clear()
 
     def system_return_clear(self):
-            self.info = None
-            self.type = None
-            self.version = None
-            self.power_frequency = None
-            self.auto_focus = None
-            self.auto_zero = None
-            self.low_lamp = None
-            self.tray_size = 80
-            self.active_lamp = None
-            self.standby = None
-            self.high_light = None
-            self.slot = 0
-            self.slide_in_gate = None
-            self.highlight = None
+        self.info = None
+        self.type = None
+        self.version = None
+        self.power_frequency = None
+        self.auto_focus = None
+        self.auto_zero = None
+        self.low_lamp = None
+        self.tray_size = 80
+        self.active_lamp = None
+        self.standby = None
+        self.high_light = None
+        self.slot = 0
+        self.slide_in_gate = None
+        self.highlight = None
 
     # return True if busy
     def get_system_status(self):
@@ -374,19 +375,19 @@ class EktaproDevice:
         self.framing_error = 0
 
     def comms(self, command, read_bytes=0, pre_timeout=0.0, post_timeout=0.0):
-        #we do not rely of buffering so check
+        # we do not rely of buffering so check
         #todo can throw 'OSError: [Errno 5] Input/output error'
         if self.serial_device.inWaiting():
-            log.debug (self.serial_device.inWaiting())
+            log.debug(self.serial_device.inWaiting())
             rec = self.serial_device.read()
             binary_string = "binary - "
             for c in rec:
                 binary_string += bin(c) + " "
             log.debug("Received. " +
-                       #"Hex: " + repr(rec)
-                       binary_string +
-                       " len: " + str(len(rec)))
-            raise EktaproError ("junk in buffer")
+                      #"Hex: " + repr(rec)
+                      binary_string +
+                      " len: " + str(len(rec)))
+            raise EktaproError("junk in buffer")
 
         rec = bytearray()
         command_bytes = command.to_data()
@@ -433,32 +434,31 @@ class EktaproDevice:
         return rec
 
     def get_details(self, extended=True):
-        det = "Busy: " + str(self.busy)\
-            + " Home: " + str(self.at_zero_position)\
-            + " Reset:" + str(self.resetting)\
-            + " F2:" + str(self.unknown_flag2)\
-            + " SLME:" + str(self.slide_lift_motor_error)\
-            + " TTME:" + str(self.tray_transport_motor_error)\
-            + " CE:" + str(self.command_error)\
-            + " BOE:" + str(self.buffer_overflow_error)\
-            + " OE:" + str(self.overrun_error)\
-            + " FE:" + str(self.framing_error)\
-            + " L1:" + str(self.lamp1_status)\
-            + " L2:" + str(self.lamp2_status)
+        det = "Busy: " + str(self.busy) \
+              + " Home: " + str(self.at_zero_position) \
+              + " Reset:" + str(self.resetting) \
+              + " F2:" + str(self.unknown_flag2) \
+              + " SLME:" + str(self.slide_lift_motor_error) \
+              + " TTME:" + str(self.tray_transport_motor_error) \
+              + " CE:" + str(self.command_error) \
+              + " BOE:" + str(self.buffer_overflow_error) \
+              + " OE:" + str(self.overrun_error) \
+              + " FE:" + str(self.framing_error) \
+              + " L1:" + str(self.lamp1_status) \
+              + " L2:" + str(self.lamp2_status)
         if extended:
-            det += "\n Model: " + self.get_model()\
-                + " Slot: " + str (self.slot)\
-                + " Tray size: " + str(self.tray_size)\
-                + " Slide in gate: " + ("Yes" if self.slide_in_gate == 1 else "No")\
-                + " Standby: " + ("On" if self.standby == 1 else "Off")\
-                + " Active lamp: " + ("L2" if self.active_lamp == 1 else "L1")\
-                + " Standby: " + ("On" if self.standby == 1 else "Off")\
-                + " Power frequency: " + ("60Hz" if self.power_frequency == 1 else "50Hz")\
-                + " Autofocus: " + ("On" if self.auto_focus == 1 else "Off")\
-                + " Autozero: " + ("On" if self.auto_zero == 1 else "Off")\
-                + " Low lamp mode: " + ("On" if self.low_lamp == 1 else "Off")\
-                + " High light: " + ("On" if self.high_light == 1 else "Off")
-
+            det += "\n Model: " + self.get_model() \
+                   + " Slot: " + str(self.slot) \
+                   + " Tray size: " + str(self.tray_size) \
+                   + " Slide in gate: " + ("Yes" if self.slide_in_gate == 1 else "No") \
+                   + " Standby: " + ("On" if self.standby == 1 else "Off") \
+                   + " Active lamp: " + ("L2" if self.active_lamp == 1 else "L1") \
+                   + " Standby: " + ("On" if self.standby == 1 else "Off") \
+                   + " Power frequency: " + ("60Hz" if self.power_frequency == 1 else "50Hz") \
+                   + " Autofocus: " + ("On" if self.auto_focus == 1 else "Off") \
+                   + " Autozero: " + ("On" if self.auto_zero == 1 else "Off") \
+                   + " Low lamp mode: " + ("On" if self.low_lamp == 1 else "Off") \
+                   + " High light: " + ("On" if self.high_light == 1 else "Off")
 
         return det
 
@@ -734,11 +734,11 @@ if __name__ == "__main__":
     tpt.reset()
     log.debug(tpt.get_details())
 
-    log.info( 'sync :' + str(tpt.status_get_tray_position()))
+    log.info('sync :' + str(tpt.status_get_tray_position()))
 
-    for l in [1, 2, 3 ,4 ,5 ,6 ,7 ,8]:
+    for l in [1, 2, 3, 4, 5, 6, 7, 8]:
         tpt.next(20, 20)
-        log.info( 'sync :' + str(tpt.status_get_tray_position()) + "   in gate: " + str(tpt.slide_in_gate))
+        log.info('sync :' + str(tpt.status_get_tray_position()) + "   in gate: " + str(tpt.slide_in_gate))
 
 
 
