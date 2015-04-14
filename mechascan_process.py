@@ -32,8 +32,6 @@ class ScanType(Enum):
     current = 3
     start_end = 4
 
-
-
 class ProcessError(Exception):
     pass
 
@@ -126,6 +124,8 @@ class Process:
         with self.lock.acquire_timeout(0):
             if open:
                 self._cam = CameraDevice()
+                cams = self._cam.list_cameras()
+                #Nikon DSC D800E
                 self._cam.open()
                 self.cam_port = self._cam.port
                 self._cam.use_sdram()

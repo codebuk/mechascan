@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from PyQt5.QtCore import Qt, QDir, QRect, QTimer
 from PyQt5.QtGui import QImage, QPixmap, QTransform, QPainter
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem,

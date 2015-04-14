@@ -36,6 +36,31 @@ class CameraDevice:
         self.config = None
         self.port = "Auto"
         self.capture_ok = False
+        self.list_cameras()
+
+    def list_cameras(self):
+        # noinspection PyUnresolvedReferences
+        context = gp.gp_context_new()
+        if hasattr(gp, 'gp_camera_autodetect'):
+            # gphoto2 version 2.5+
+            cameras = gp.check_result(gp.gp_camera_autodetect(context))
+        else:
+            # noinspection PyUnresolvedReferences
+            port_info_list = gp.check_result(gp.gp_port_info_list_new())
+            # noinspection PyUnresolvedReferences
+            gp.check_result(gp.gp_port_info_list_load(port_info_list))
+            # noinspection PyUnresolvedReferences
+            abilities_list = gp.check_result(gp.gp_abilities_list_new())
+            # noinspection PyUnresolvedReferences
+            gp.check_result(gp.gp_abilities_list_load(abilities_list, context))
+            # noinspection PyUnresolvedReferences
+            cameras = gp.check_result(gp.gp_abilities_list_detect(
+                abilities_list, port_info_list, context))
+        n = 0
+        for name, value in cameras:
+            log.debug('Camera number :' + str(n) + ' Name: ' + name + ' Value: ' + value)
+            n += 1
+        return cameras
 
     # noinspection PyUnresolvedReferences
     def set_config(self, camera, context, name, value):
@@ -48,18 +73,17 @@ class CameraDevice:
             widget_child = gp.check_result(gp.gp_widget_get_child_by_name(self.config, name))
             # noinspection PyUnresolvedReferences
             widget_type = gp.check_result(gp.gp_widget_get_type(widget_child))
-
+            log.debug("Widget type: " + widget_type)
             # check value in range
             count = gp.check_result(gp.gp_widget_count_choices(widget_child))
-            log.debug ("Count choices: " + str(count))
+            log.debug("Count choices: " + str(count))
             if value < 0 or value >= count:
                 log.debug('Parameter out of count choices range')
-                raise
 
             str_value = gp.check_result(gp.gp_widget_get_choice(widget_child, value))
-            log.debug ("Get choice repr: " + str_value)
+            log.debug("Get choice repr: " + str_value)
             widget_value = gp.check_result(gp.gp_widget_get_value(widget_child))
-            log.debug ("Get value: " + widget_value)
+            log.debug("Get value: " + widget_value)
             # noinspection PyUnresolvedReferences
             gp.check_result(gp.gp_widget_set_value(widget_child, str_value))
             # noinspection PyUnresolvedReferences
