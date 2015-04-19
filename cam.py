@@ -36,31 +36,7 @@ class CameraDevice:
         self.config = None
         self.port = "Auto"
         self.capture_ok = False
-        self.list_cameras()
-
-    def list_cameras(self):
-        # noinspection PyUnresolvedReferences
-        context = gp.gp_context_new()
-        if hasattr(gp, 'gp_camera_autodetect'):
-            # gphoto2 version 2.5+
-            cameras = gp.check_result(gp.gp_camera_autodetect(context))
-        else:
-            # noinspection PyUnresolvedReferences
-            port_info_list = gp.check_result(gp.gp_port_info_list_new())
-            # noinspection PyUnresolvedReferences
-            gp.check_result(gp.gp_port_info_list_load(port_info_list))
-            # noinspection PyUnresolvedReferences
-            abilities_list = gp.check_result(gp.gp_abilities_list_new())
-            # noinspection PyUnresolvedReferences
-            gp.check_result(gp.gp_abilities_list_load(abilities_list, context))
-            # noinspection PyUnresolvedReferences
-            cameras = gp.check_result(gp.gp_abilities_list_detect(
-                abilities_list, port_info_list, context))
-        n = 0
-        for name, value in cameras:
-            log.debug('Camera number :' + str(n) + ' Name: ' + name + ' Value: ' + value)
-            n += 1
-        return cameras
+        #self.list_cameras
 
     # noinspection PyUnresolvedReferences
     def set_config(self, camera, context, name, value):
@@ -69,24 +45,29 @@ class CameraDevice:
             log.debug('set config')
             # noinspection PyUnresolvedReferences
             self.config = gp.check_result(gp.gp_camera_get_config(camera, context))
-            # noinspection PyUnresolvedReferences
-            widget_child = gp.check_result(gp.gp_widget_get_child_by_name(self.config, name))
+            try:
+                # noinspection PyUnresolvedReferences
+                widget_child = gp.check_result(gp.gp_widget_get_child_by_name(self.config, name))
+            except gp.GPhoto2Error as ex:
+                if ex.code == gp.GP_ERROR_BAD_PARAMETERS:
+                    log.error("Bad parameters")
+                    return False
+                raise
+
             # noinspection PyUnresolvedReferences
             widget_type = gp.check_result(gp.gp_widget_get_type(widget_child))
-            log.debug("Widget type: " + widget_type)
+            log.debug("Widget type: " + str(widget_type))
             # check value in range
             count = gp.check_result(gp.gp_widget_count_choices(widget_child))
             log.debug("Count choices: " + str(count))
             if value < 0 or value >= count:
                 log.debug('Parameter out of count choices range')
-
             str_value = gp.check_result(gp.gp_widget_get_choice(widget_child, value))
             log.debug("Get choice repr: " + str_value)
             widget_value = gp.check_result(gp.gp_widget_get_value(widget_child))
             log.debug("Get value: " + widget_value)
             # noinspection PyUnresolvedReferences
             gp.check_result(gp.gp_widget_set_value(widget_child, str_value))
-            # noinspection PyUnresolvedReferences
             gp.check_result(gp.gp_camera_set_config(camera, self.config, context))
 
     def use_sdram(self):
@@ -133,27 +114,52 @@ class CameraDevice:
             return False
 
     def save(self, name):
-        log.debug('save')
-        if self.connected and self.capture_ok:
-            # noinspection PyUnresolvedReferences
-            camera_file = gp.check_result(gp.gp_camera_file_get(
-                self.camera, self.path.folder, self.path.name, gp.GP_FILE_TYPE_NORMAL, self.context))
-            # noinspection PyUnresolvedReferences
-            gp.check_result(gp.gp_file_save(camera_file, name))
-            # noinspection PyUnresolvedReferences
-            #gp.check_result(gp.gp_camera_file_delete(self.camera, self.path.folder, self.path.name, self.context))
+        log.debug('Save image to:' + name)
+        if not self.connected:
+            log.error("Cannot save - camera not connected")
+            return False
+        if not self.capture_ok:
+            log.error("Cannot save - no valid capture to save")
+            return False
+        # noinspection PyUnresolvedReferences
+        camera_file = gp.check_result(gp.gp_camera_file_get(
+            self.camera, self.path.folder, self.path.name, gp.GP_FILE_TYPE_NORMAL, self.context))
+        # noinspection PyUnresolvedReferences
+        gp.check_result(gp.gp_file_save(camera_file, name))
+        # noinspection PyUnresolvedReferences
+        gp.check_result(gp.gp_camera_file_delete(self.camera, self.path.folder, self.path.name, self.context))
+
+    def list_cameras(self):
+
+        #context = gp.gp_context_new()
+        if hasattr(gp, 'gp_camera_autodetect'):
+            # gphoto2 version 2.5+
+            cameras = gp.check_result(gp.gp_camera_autodetect(self.context))
         else:
-            log.info("save failed")
+            # noinspection PyUnresolvedReferences
+            port_info_list = gp.check_result(gp.gp_port_info_list_new())
+            # noinspection PyUnresolvedReferences
+            gp.check_result(gp.gp_port_info_list_load(port_info_list))
+            # noinspection PyUnresolvedReferences
+            abilities_list = gp.check_result(gp.gp_abilities_list_new())
+            # noinspection PyUnresolvedReferences
+            gp.check_result(gp.gp_abilities_list_load(abilities_list, self.context))
+            # noinspection PyUnresolvedReferences
+            cameras = gp.check_result(gp.gp_abilities_list_detect(
+            abilities_list, port_info_list, self.context))
+            n = 0
+            for name, value in cameras:
+                log.debug('Camera number :' + str(n) + ' Name: ' + name + ' Value: ' + value)
+                n += 1
+        return cameras
 
     def close(self):
+        self.capture_ok = False
         if self.connected:
             log.debug('cam device close')
-            # gp.check_result(gp.gp_camera_exit(self.camera, self.context))
             # noinspection PyUnresolvedReferences
-            #????        camera.exit(context)
-
-            gp.gp_camera_exit(self.camera, self.context)
-            # log.info("Error closing camera - not opened?")
+            gp.check_result(gp.gp_camera_exit(self.camera, self.context))
+            #gp.gp_camera_exit(self.camera, self.context)
             self.connected = False
             return 0
 

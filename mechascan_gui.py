@@ -140,7 +140,7 @@ class MechascanSlideGUI(QMainWindow, Ui_MainWindow):
             self.work_queue.put(lambda: self.msp.led_off())
 
     def tpt_home(self):
-        self.work_queue.put(lambda: self.msp.select_slot(1))
+        self.work_queue.put(lambda: self.msp.select_slot(0))
 
     def tpt_reset(self):
         self.work_queue.put(lambda: self.msp.tpt_reset())

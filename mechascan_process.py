@@ -1,11 +1,24 @@
-#!/usr/bin/env python3
-"""
-   Copyright (C) 2014,2015 Breager
-   One projector per serial port is supported.
-   Wraps led,c amera and tranport device.
-   Provides a high level interface to functions.
-   All GUI actions should be seperate to this module.
-"""
+#!/usr/bin/env python
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+#   One projector per serial port is supported.
+#   Wraps led,c amera and tranport device.
+#   Provides a high level interface to functions.
+#   All GUI actions should be seperate to this module.
+
 
 from contextlib import contextmanager
 import threading
@@ -171,16 +184,22 @@ class Process:
                 if self.tpt_enabled:
                     self._tpt.select(self.slot_start)
             elif scan_type == ScanType.next:
-                self._tpt.next(post_timeout=0)
-                self.slot_start = self._tpt.slide
-                self.slot_end = self._tpt.slide
+                if self._tpt is not None:
+                    self._tpt.next(post_timeout=0)
+                    self.slot_start = self._tpt.slide
+                    self.slot_end = self._tpt.slide
             elif scan_type == ScanType.prev:
-                self._tpt.prev(post_timeout=0)
-                self.slot_start = self._tpt.slide
-                self.slot_end = self._tpt.slide
+                if self._tpt is not None:
+                    self._tpt.prev(post_timeout=0)
+                    self.slot_start = self._tpt.slide
+                    self.slot_end = self._tpt.slide
             elif scan_type == ScanType.current:
-                self.slot_start = self._tpt.slide
-                self.slot_end = self._tpt.slide
+                if self._tpt is not None:
+                    self.slot_start = self._tpt.slide
+                    self.slot_end = self._tpt.slide
+                else:
+                    self.slot_start = 0
+                    self.slot_end = 0
             else:
                 raise ProcessError ("Invalid scan type")
             log.info("scanning slots " + str(self.slot_start) + " to " + str(self.slot_end))
@@ -199,25 +218,29 @@ class Process:
                         break
                     self._tpt.log_debug = False
                     self._tpt.get_status() # update status including slide in gate etc
-                    if self.capture_settle_delay > 0:
+                    if not self._tpt.slide_in_gate:
+                        log.info('No slide in gate')
+                    if self._tpt.slide_in_gate and self.capture_settle_delay > 0:
                         log.info("settle delay (ms) :" + str(self.capture_settle_delay))
                         time.sleep(self.capture_settle_delay / 1000)
                 if self.led_enabled:
                     self._led.continuous(1, self.led_flash)
-                #get_slide_in_gate
-                if self.cam_enabled and self._tpt.slide_in_gate: #  and self._tpt.slide_in_gate:
+                if self.cam_enabled and ( self._tpt == None or self._tpt.slide_in_gate):
                     self.cam_capture()
                 if self.led_enabled:
                     self._led.continuous(1, self.led_rest)
                 if self.tpt_enabled and (slide != self.slot_end):
-                    log.info("set")
+                    log.info("Move to next slot")
                     self._tpt.next(post_timeout=0)
-                if self.cam_enabled:
+                if self.cam_enabled and ( self._tpt == None or self._tpt.slide_in_gate):
                     file = "/home/dan/Documents/pics/" + str(slide) + ".jpg"
                     log.debug("Capture complete - Now save" + file)
                     self.cam_save(file)
                     self.file_queue.put(file)
                 log.debug("Scan time: " + str(time.time() - ts) + "for slot: " + str(slide))
+            if scan_type == ScanType.start_end:
+                # todo check checkbox!
+                self.select_slot(0)
             self.stop_scan()
 
     def cam_capture(self):
@@ -230,27 +253,30 @@ class Process:
 
     def led_on(self):
         with self.lock.acquire_timeout(0):
-           self._led.continuous(1, self.led_flash)
+            if self._led is not None:
+                self._led.continuous(1, self.led_flash)
 
     def led_off(self):
         with self.lock.acquire_timeout(0):
-           self._led.continuous(1, 0)
+            if self._led is not None:
+                self._led.continuous(1, 0)
 
     def select_slot(self, slot):
         with self.lock.acquire_timeout(0):
-            self._tpt.select(slot)
+            if self._tpt is not None:
+                self._tpt.select(slot)
 
     def get_slot(self):
         if self._tpt is not None:
             return self._tpt.slide
         else:
-            return "N/A"
+            return 0
 
     def get_slide_in_gate(self):
         if self._tpt is not None:
             return self._tpt.slide_in_gate
         else:
-            return "N/A"
+            return 0
 
     def home_slot(self):
         with self.lock.acquire_timeout(0):
@@ -258,7 +284,8 @@ class Process:
 
     def tpt_reset(self):
         with self.lock.acquire_timeout(0):
-            self._tpt.reset()
+            if self._tpt is not None:
+                self._tpt.reset()
 
     def next_slot(self):
         with self.lock.acquire_timeout(0):
@@ -269,7 +296,10 @@ class Process:
             self._tpt.prev(pre_timeout=1.5, post_timeout=1.5)
 
     def get_tpt_tray_size(self):
-        return self._tpt.tray_size
+        if self._tpt is not None:
+            return self._tpt.tray_size
+        else:
+            return 80 # fake value
 
 
 class TimeoutLock(object):

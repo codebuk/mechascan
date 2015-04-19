@@ -3,8 +3,7 @@
 
    ektapro v1.0
    
-   Copyright 2010 Julian Hoch
-   Copyright 2014 Dan Tyrrell
+   Copyright 2014 2015 Dan Tyrrell
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -174,28 +173,28 @@ class EktaproDevice:
         self.standby = False
 
     def reset(self):
-        # when reset device might respond with not busy
-        #there is a an undocumented flag used to indicate reset is complete
-        #if the next call
-        self.comms(EktaproCommand(self.id).direct_reset_system())
-        # while resetting it is possible no serial response so poll up to 10 seconds looking for a response
-        time.sleep(2)  # stop useless polling & command error if any less
-        self.serial_device.flushInput()
-        self.serial_device.flushOutput()
-        ts = time.time()
-        while True:
-            self.get_system_status()
-            log.debug(self.get_details(extended=False))
-            if not self.resetting and not self.busy:
-                break
-            time.sleep(.5)
-            if time.time() - ts > self.reset_time_out:
-                log.error("Reset timeout: " + str(self.reset_time_out))
-                raise EktaproError("Reset timeout")
-        log.debug("reset polled for: " + str(time.time() - ts))
-        self.slide = 0
-        #self.get_system_return()
-        self.get_status()  # update internal status
+        if self.connected:
+            # when reset device might respond with not busy
+            #there is a an undocumented flag used to indicate reset is complete
+            self.comms(EktaproCommand(self.id).direct_reset_system())
+            # while resetting it is possible no serial response so poll up to 10 seconds looking for a response
+            time.sleep(2)  # stop useless polling & command error if any less
+            self.serial_device.flushInput()
+            self.serial_device.flushOutput()
+            ts = time.time()
+            while True:
+                self.get_system_status()
+                log.debug(self.get_details(extended=False))
+                if not self.resetting and not self.busy:
+                    break
+                time.sleep(.5)
+                if time.time() - ts > self.reset_time_out:
+                    log.error("Reset timeout: " + str(self.reset_time_out))
+                    raise EktaproError("Reset timeout")
+            log.debug("reset polled for: " + str(time.time() - ts))
+            self.slide = 0
+            #self.get_system_return()
+            self.get_status()  # update internal status
 
     def clear_error_flag(self):
         self.comms(EktaproCommand(self.id).direct_clear_error_flag())
