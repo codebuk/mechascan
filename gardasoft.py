@@ -163,7 +163,7 @@ class GardasoftDevice:
             if er:
                 log.debug(msg)
             else:
-                log.error("Send: " + msg + "  len: " + str(z) + " resp size: " + str(len(info)) + " Response: " + str(info))
+                log.error("Send: " + msg + " resp size: " + str(len(info)) + " Response: " + str(info))
                 raise Exception('Bad continuous enable response' + repr(info))
             self.continuous_enable = True
 
@@ -177,7 +177,7 @@ class GardasoftDevice:
         if er:
             log.debug(msg)
         else:
-            log.error("Send: " + msg + "  len: " + str(z) + " resp size: " + str(len(info)) + " Response: " + str(info))
+            log.error("Send: " + msg + " resp size: " + str(len(info)) + " Response: " + str(info))
             raise Exception('Bad continuous response' + repr(info))
 
     def strobe(self, channel, min_current, max_current, count):
@@ -187,7 +187,6 @@ class GardasoftDevice:
         self.all_off()
 
 if __name__ == "__main__":
-    import time
     import logging
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s.%(msecs)d %(levelname)s %(message)s',
