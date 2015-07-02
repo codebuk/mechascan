@@ -26,7 +26,7 @@ A1  20  VSS 12P
 # Ektapro Test Points
 Mainboard 4000+
 
-'''
+```
 1 SHUTDOWN
 2 SLOT 232 T
 3 232 R1
@@ -39,7 +39,7 @@ Mainboard 4000+
 11
 13 - Zero Cross
 14 - Triac
-'''
+```
 
 
 # Keyboard Test Points
