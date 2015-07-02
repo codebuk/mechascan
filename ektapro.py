@@ -740,6 +740,6 @@ if __name__ == "__main__":
 
     log.info('sync :' + str(tpt.status_get_tray_position()))
 
-    for l in [1, 2, 3, 4, 5, 6, 7, 8]:
+    for l in [1, 2, 3, 4]:
         tpt.next(20, 20)
         log.info('sync :' + str(tpt.status_get_tray_position()) + "   in gate: " + str(tpt.slide_in_gate))

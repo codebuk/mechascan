@@ -1,5 +1,5 @@
 
-Power connector 
+# Power connector 
 
 B10 1   5VDC
 A10 2   34VDC
@@ -23,7 +23,7 @@ B1  19  VSS34
 A1  20  VSS 12P
 
 
-Ektapro Test Points
+# Ektapro Test Points
 Mainboard 4000+
 
 1 SHUTDOWN
@@ -40,7 +40,7 @@ Mainboard 4000+
 14 - Triac
 
 
-Keyboard 
+# Keyboard Test Points
 
 1 Tray Back
 2 Tray Forw
