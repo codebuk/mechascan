@@ -32,6 +32,7 @@ class GardasoftDevice:
         log.debug('gardasoft device init')
         self.port = "Not connected"
         self.connected = 0
+        self.continuous_enable = False
         self.ver = None
         self.ser = None
 
@@ -147,9 +148,25 @@ class GardasoftDevice:
     def all_off(self):
         self.continuous(1, 0)
         self.continuous(2, 0)
-        log.debug('All off OK')
+        log.info('All channels off OK')
 
     def continuous(self, channel, current):
+
+        if not self.continuous_enable:
+            com = b'RS' + bytes(str(channel), 'ascii') + b'S0\n\r'
+            z = len(com)
+            msg = 'Command. Channel: ' + str(channel) + ' - Command: ' + repr(com)
+            info = self.write_read(com, z + 1)
+            if info is None:
+                return 0
+            er = re.search("\A" + com.decode("utf-8") + "(>)\Z", info, re.DOTALL)
+            if er:
+                log.debug(msg)
+            else:
+                log.error("Send: " + msg + "  len: " + str(z) + " resp size: " + str(len(info)) + " Response: " + str(info))
+                raise Exception('Bad continuous enable response' + repr(info))
+            self.continuous_enable = True
+
         com = b'RC' + bytes(str(channel), 'ascii') + b'C0V' + bytes(str(current), 'ascii') + b'\n\r'
         z = len(com)
         msg = 'continuous ' + str(channel) + ' - ' + str(current) + " - " + repr(com)
@@ -185,21 +202,26 @@ if __name__ == "__main__":
     x = led.version()
     if not x:
         log.warn("LED device not connected")
-    l = 1
-    for l in [1, 2]:
-        try:
-            led.continuous(l, 2000)
-            time.sleep(.3)
-            led.continuous(l, 0)
-            time.sleep(1)
-            led.strobe(l, 0, 4000, 20)
-            led.status()
-            log.info("Version: " + led.version())
-            #for x in range(0, 1000, 1):
-            #    led.continuous ( l, x)
-            #for x in range(500, 0, -50):
-            #    led.continuous ( l, x)
-            led.all_off()
-            led.clear_error()
-        except:
-            raise
+
+    led.continuous(1, 350)
+    # exit
+    # l = 1
+    # for l in [1, 2]:
+    #     try:
+    #         led.continuous(l, 1000)
+    #         time.sleep(.1)
+    #         led.continuous(l, 0)
+    #         time.sleep(1)
+    #         led.strobe(l, 0, 1000, 20)
+    #         log.info(led.status())
+    #         log.info("Version: " + led.version())
+    #         #for x in range(0, 4000, 100):
+    #         #    time.sleep(.1)
+    #         #    led.continuous ( l, x)
+    #         #for x in range(4000, 0, -100):
+    #         #    time.sleep(.1)
+    #         #    led.continuous ( l, x)
+    #         led.all_off()
+    #         led.clear_error()
+    #     except:
+    #         raise

@@ -68,7 +68,7 @@ class Process:
 
         self.scan_state = ScanState.stopped
 
-        self.led_flash = 2000
+        self.led_flash = 350
         self.led_rest = 0
 
         self.led_enabled = True
@@ -159,7 +159,7 @@ class Process:
                 if self._led.connected:
                     self._led.status()
                     self._led.version()
-                    self._led.strobe(1, 0, 4000, 4)
+                    self._led.strobe(1, 0, self.led_flash, 4)
                     self._led.continuous(1, self.led_rest)
                     self.led_port =self._led.port
                     self.led_connected =self._led.connected
@@ -223,11 +223,11 @@ class Process:
                     if self._tpt.slide_in_gate and self.capture_settle_delay > 0:
                         log.info("settle delay (ms) :" + str(self.capture_settle_delay))
                         time.sleep(self.capture_settle_delay / 1000)
-                if self.led_enabled:
+                if self.led_enabled and self._tpt.slide_in_gate:
                     self._led.continuous(1, self.led_flash)
                 if self.cam_enabled and ( self._tpt == None or self._tpt.slide_in_gate):
                     self.cam_capture()
-                if self.led_enabled:
+                if self.led_enabled and self._tpt.slide_in_gate:
                     self._led.continuous(1, self.led_rest)
                 if self.tpt_enabled and (slide != self.slot_end):
                     log.info("Move to next slot")
