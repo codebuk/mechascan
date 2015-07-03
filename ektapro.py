@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 
-   ektapro v1.0
+   ektapro
    
    Copyright 2014 2015 Dan Tyrrell
 
