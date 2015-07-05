@@ -27,6 +27,7 @@ from ektapro import *
 from cam import *
 from gardasoft import *
 
+
 import logging
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s.%(msecs)d-%(name)s-%(threadName)s-%(levelname)s %(message)s',
@@ -68,8 +69,9 @@ class Process:
 
         self.scan_state = ScanState.stopped
 
-        self.led_flash = 350
+        self.led_flash_current = 350
         self.led_rest = 0
+        self.led_force_on = False
 
         self.led_enabled = True
         self.led_port = "Not connected"
@@ -159,7 +161,7 @@ class Process:
                 if self._led.connected:
                     self._led.status()
                     self._led.version()
-                    self._led.strobe(1, 0, self.led_flash, 4)
+                    self._led.strobe(1, 0, self.led_flash_current, 4)
                     self._led.continuous(1, self.led_rest)
                     self.led_port =self._led.port
                     self.led_connected =self._led.connected
@@ -223,11 +225,11 @@ class Process:
                     if self._tpt.slide_in_gate and self.capture_settle_delay > 0:
                         log.info("settle delay (ms) :" + str(self.capture_settle_delay))
                         time.sleep(self.capture_settle_delay / 1000)
-                if self.led_enabled and self._tpt.slide_in_gate:
-                    self._led.continuous(1, self.led_flash)
+                if (self.led_enabled and self._tpt.slide_in_gate) and not self.led_force_on:
+                    self._led.continuous(1, self.led_flash_current)
                 if self.cam_enabled and ( self._tpt == None or self._tpt.slide_in_gate):
                     self.cam_capture()
-                if self.led_enabled and self._tpt.slide_in_gate:
+                if (self.led_enabled and self._tpt.slide_in_gate) and not self.led_force_on:
                     self._led.continuous(1, self.led_rest)
                 if self.tpt_enabled and (slide != self.slot_end):
                     log.info("Move to next slot")
@@ -254,12 +256,14 @@ class Process:
     def led_on(self):
         with self.lock.acquire_timeout(0):
             if self._led is not None:
-                self._led.continuous(1, self.led_flash)
+                self._led.continuous(1, self.led_flash_current)
+                self.led_force_on = True
 
     def led_off(self):
         with self.lock.acquire_timeout(0):
             if self._led is not None:
                 self._led.continuous(1, 0)
+                self.led_force_on = False
 
     def select_slot(self, slot):
         with self.lock.acquire_timeout(0):
