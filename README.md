@@ -11,7 +11,8 @@ dnf install darktable
 
 sudo pip3 install exifread
 sudo pip install gphoto2
-?#sudo dnf remove gvfs-gphoto2 to stop gvfd mounting?
+# to stop gvfd mounting
+sudo dnf remove gvfs-gphoto2
 /usr/lib/udev/rules.d/40-libgphoto2.rules
 ```
 
@@ -42,16 +43,17 @@ ldconfig: Can't stat /usr/libx32: No such file or directory
 ```
 then 
 
+```
 # su
-
+```
 add path 
-
+```
 # PKG_CONFIG_PATH="/usr/local/lib/pkgconfig/"; export PKG_CONFIG_PATH
-
+```
 install 
-
-> pip3 install gphoto2
-
+```
+pip install gphoto2
+```
 or manually >python3 setup.py install
 
 You can list the directories pkg-config looks in by default using:
@@ -70,7 +72,7 @@ Nikon D800E settings
 - High ISO NR - Off
 
 
-todo
+# todo
 
 30 seconds for projector to report a jam. eg slide stuck in slot
 ```
