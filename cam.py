@@ -83,7 +83,7 @@ class CameraDevice:
             self.camera = gp.check_result(gp.gp_camera_new())
             self.camera.init(self.context)
             self.summary = self.camera.get_summary(self.context)
-            log.debug(str(self.summary))
+            #log.debug(str(self.summary))
             log.debug('init camera')
             self.connected = True
         except gp.GPhoto2Error as ex:

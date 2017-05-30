@@ -21,7 +21,6 @@
 """
 import numpy as np
 import cv2
-
 import logging
 
 logging.basicConfig(level=logging.DEBUG,
@@ -29,14 +28,42 @@ logging.basicConfig(level=logging.DEBUG,
                     datefmt='%M:%S')
 log = logging.getLogger(__name__)
 
-
-class IppError(Exception):
-    pass
+# class IppError(Exception):
+#    pass
 
 
 class Ipp:
-    #
     def __init__(self):
-        print ("dddd")
+        print("dddd")
+        self.original = None
+        self.img = None
 
+    def open(self, name):
+        # keep a copy of original image
+        self.original = cv2.imread(name)
+        #self.img = self.original.copy()
+        self.img = cv2.imread(name, 0)
 
+    def save(self, name):
+        cv2.imwrite(name, self.img)
+
+    def remove_border(self):
+        # Read the image, convert it into grayscalecv2.CV_LOAD_IMAGE_GRAYSCALE
+        # todo cv2.CV_LOAD_IMAGE_GRAYSCALE
+        # img = cv2.imread(IMG_IN,0)
+        # use binary threshold, all pixel that are beyond 3 are made white
+        _, thresh_original = cv2.threshold(self.img, 3, 255, cv2.THRESH_BINARY)
+        # Now find contours in it.
+        #thresh = cv2.copy(thresh_original)
+        z, contours, y = cv2.findContours(thresh_original, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # get contours with highest height
+        lst_contours = []
+        for cnt in contours:
+            ctr = cv2.boundingRect(cnt)
+            lst_contours.append(ctr)
+        x, y, w, h = sorted(lst_contours, key=lambda coef: coef[3])[-1]
+        print(x, y, w, h)
+        self.img = self.original[y:y + h, x:x + w]
+
+    def flip_horizontal(self):
+        self.img = cv2.flip(self.img, flipCode = 1)
