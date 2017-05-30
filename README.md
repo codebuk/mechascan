@@ -60,13 +60,14 @@ and....
 ##Focus examples
 
 https://github.com/fape/libgphoto2/blob/master/examples/focus.c
+
 https://zoetrope.io/tech-blog/pursuit-better-tethered-autofocus
 
 ##Example Nikon D800E settings
 
 High ISO NR - Off
 
-#todo
+##todo
 
 30 seconds for projector to report a jam. eg slide stuck in slot
 ```
