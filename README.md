@@ -15,15 +15,15 @@ sudo pip install gphoto2
 sudo dnf remove gvfs-gphoto2
 /usr/lib/udev/rules.d/40-libgphoto2.rules
 ```
-
-# sudo vi /etc/ld.so.conf
-
+```
+sudo vi /etc/ld.so.conf
+```
 add /usr/local/lib/ to top of file 
 
 As root run
- 
-#  ldconfig --verbose | grep gpho
-
+``` 
+ldconfig --verbose | grep gpho
+```
 eg:
 ```
 [root@spain-dnt-com-au ~]# ldconfig --verbose | grep gph
@@ -44,11 +44,11 @@ ldconfig: Can't stat /usr/libx32: No such file or directory
 then 
 
 ```
-# su
+su
 ```
 add path 
 ```
-# PKG_CONFIG_PATH="/usr/local/lib/pkgconfig/"; export PKG_CONFIG_PATH
+PKG_CONFIG_PATH="/usr/local/lib/pkgconfig/"; export PKG_CONFIG_PATH
 ```
 install 
 ```
