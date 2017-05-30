@@ -17,6 +17,7 @@
 import serial
 import glob
 from serial import *
+import fcntl
 
 import logging
 
@@ -69,7 +70,7 @@ def enumerate_physical_serial_ports(check_lock=True):
                             fcntl.flock(ser, fcntl.LOCK_EX | fcntl.LOCK_NB)
                             log.info("Success. Unlocked port available: " + path)
                             ports.extend([path])
-                        except IOError:
+                        except OSError:
                             log.info("Can not immediately write-lock file as it is locked. Port is in use: " + path)
                     except:
                         log.info("Can not open port: " + path)
