@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file './qt-mechascan/mainwindow.ui'
 #
-# Created by: PyQt5 UI code generator 5.4.1
+# Created by: PyQt5 UI code generator 5.7
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -30,8 +30,8 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.centralwidget)
-        self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setContentsMargins(-1, 0, -1, 0)
+        self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
@@ -71,10 +71,11 @@ class Ui_MainWindow(object):
         self.dockWidgetContents_control = QtWidgets.QWidget()
         self.dockWidgetContents_control.setObjectName("dockWidgetContents_control")
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout(self.dockWidgetContents_control)
+        self.horizontalLayout_3.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.horizontalLayout_control = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_control.setSpacing(0)
         self.horizontalLayout_control.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
+        self.horizontalLayout_control.setSpacing(0)
         self.horizontalLayout_control.setObjectName("horizontalLayout_control")
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_control.addItem(spacerItem)
@@ -138,9 +139,9 @@ class Ui_MainWindow(object):
         self.layoutWidget.setGeometry(QtCore.QRect(0, 0, 186, 525))
         self.layoutWidget.setObjectName("layoutWidget")
         self.vl_hardware = QtWidgets.QVBoxLayout(self.layoutWidget)
-        self.vl_hardware.setSpacing(0)
         self.vl_hardware.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
-        self.vl_hardware.setContentsMargins(6, -1, -1, -1)
+        self.vl_hardware.setContentsMargins(6, 0, 0, 0)
+        self.vl_hardware.setSpacing(0)
         self.vl_hardware.setObjectName("vl_hardware")
         self.widget = QtWidgets.QWidget(self.layoutWidget)
         self.widget.setMinimumSize(QtCore.QSize(0, 90))
