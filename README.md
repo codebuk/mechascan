@@ -1,23 +1,19 @@
 mechascan
 =========
 
-?#sudo dnf remove gvfs-gphoto2 to stop gvfd mounting?
-/usr/lib/udev/rules.d/40-libgphoto2.rules
-
-
+# Fedora 25 install
 ```
 dnf install dconf-editor
 dnf install gphoto2
 dnf install libgphoto2
 dnf install libgphoto2-devel
 dnf install darktable
-```
 
-# Fedora 25 install
-
-
-```sudo pip3 install exifread
+sudo pip3 install exifread
 sudo pip install gphoto2
+?#sudo dnf remove gvfs-gphoto2 to stop gvfd mounting?
+/usr/lib/udev/rules.d/40-libgphoto2.rules
+```
 
 # sudo vi /etc/ld.so.conf
 
