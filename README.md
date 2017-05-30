@@ -42,9 +42,9 @@ ldconfig: Can't stat /usr/libx32: No such file or directory
 [root@spain-dnt-com-au ~]# exit
 ```
 then 
-`su`
+```su```
 add path 
-`PKG_CONFIG_PATH="/usr/local/lib/pkgconfig/"; export PKG_CONFIG_PATH`
+``PKG_CONFIG_PATH="/usr/local/lib/pkgconfig/"; export PKG_CONFIG_PATH``
 install 
 `pip install gphoto2`
 or manually >python3 setup.py install
