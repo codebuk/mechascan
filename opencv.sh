@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # see
 # http://docs.opencv.org/master/dd/dd5/tutorial_py_setup_in_fedora.html
+#
+
+
 set -x
 
 clean="clean"
