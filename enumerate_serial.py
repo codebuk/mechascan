@@ -14,9 +14,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import serial
+import sys
+import os
 import glob
-from serial import *
+import serial
 import fcntl
 
 import logging
@@ -82,7 +83,7 @@ def enumerate_physical_serial_ports(check_lock=True):
         for dev in glob.glob('/dev/ttyS*'):
             # to do add port locking check
             try:
-                comm_port = Serial(dev)
+                comm_port = serial.Serial (dev)
             except OSError:
                 pass
             else:

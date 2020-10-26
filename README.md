@@ -7,10 +7,14 @@ dnf install dconf-editor
 dnf install gphoto2
 dnf install libgphoto2
 dnf install libgphoto2-devel
-dnf install darktable
+sudo dnf install python3-devel   #gphoto2 python bindings require this
+sudo dnf install python3-pyserial
+sudo dnf install python3-exif
+dnf install darktable   # decent RAW viewer
 
-sudo pip3 install exifread
+? sudo pip install exifread  #use pip install --user` 
 sudo pip install gphoto2
+
 ### to stop gvfd mounting
 sudo dnf remove gvfs-gphoto2
 /usr/lib/udev/rules.d/40-libgphoto2.rules
